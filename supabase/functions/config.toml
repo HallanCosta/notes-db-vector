@@ -1,0 +1,14 @@
+[create-note]
+verify_jwt = false
+
+[get-notes]
+verify_jwt = false
+
+[get-note]
+verify_jwt = false
+
+[delete-notes]
+verify_jwt = false
+
+[search-notes]
+verify_jwt = false
