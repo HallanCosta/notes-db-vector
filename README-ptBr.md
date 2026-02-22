@@ -1,6 +1,6 @@
 # Notes CRUD - Busca Vetorial
 
-[🇺🇸 Read this README in English](https://github.com/HallanCosta/woovi-challanger-iso8583/blob/main/README.md)
+[🇺🇸 Read this README in English](https://github.com/HallanCosta/notes-db-vector/blob/main/README.md)
 
 Aplicação de notas com busca semântica usando Supabase, Ollama e React.
 
