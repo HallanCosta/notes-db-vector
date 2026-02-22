@@ -46,11 +46,17 @@ env/
 supabase/.branches/*
 !supabase/.branches/_current_branch
 supabase/.temp/*
+supabase/coverage/
 
 # ============================
 # Docker
 # ============================
 .docker/
+
+# ============================
+# Claude Code
+# ============================
+.claude/
 
 # ============================
 # IDE
