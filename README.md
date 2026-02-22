@@ -2,7 +2,7 @@
 
 [🇧🇷 Leia este README em Português](https://github.com/HallanCosta/woovi-challanger-iso8583/blob/main/README-ptBR.md)
 
-Notes application with semantic search using Supabase, MiniMax and React.
+Notes application with semantic search using Supabase, Ollama and React.
 
 ## Requirements
 
