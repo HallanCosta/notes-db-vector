@@ -70,6 +70,23 @@ Após iniciar, você pode acessar:
 - **Dashboard do Supabase (inclui Edge Functions):** http://127.0.0.1:54323/project/default/functions
 - **URL da API:** http://127.0.0.1:54321
 
+### Rodar testes (Edge Functions do Supabase)
+
+Requer o [Deno](https://deno.land/) instalado.
+
+```bash
+cd supabase
+
+# Rodar testes uma vez
+deno task test:run
+
+# Rodar testes com coverage
+deno task test:coverage
+
+# Rodar testes de integração (requer Supabase e Ollama rodando)
+deno task test:integration
+```
+
 ### 4. Frontend
 
 ```bash
@@ -79,6 +96,24 @@ pnpm dev
 ```
 
 Acesse: http://localhost:5173
+
+### Testes do Frontend
+
+```bash
+cd web
+
+# Rodar testes unitários (exclui testes de integração)
+pnpm test:run
+
+# Rodar testes com coverage
+pnpm test:coverage
+
+# Rodar todos os testes incluindo integração (requer Supabase rodando)
+pnpm test:integration
+```
+
+- **Testes unitários:** Usam mocks, sem dependências externas
+- **Testes de integração:** Fazem chamadas HTTP reais para as Edge Functions do Supabase
 
 ---
 
