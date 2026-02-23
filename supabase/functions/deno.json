@@ -1,0 +1,16 @@
+{
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1",
+    "@std/expect": "jsr:@std/expect@1"
+  },
+  "tasks": {
+    "test": "deno test --allow-net --allow-env __tests__/",
+    "test:run": "deno test --allow-net --allow-env __tests__/",
+    "test:coverage": "deno test --coverage --allow-net --allow-env __tests__/",
+    "test:integration": "RUN_INTEGRATION_TESTS=true deno test --allow-net --allow-env __tests__/"
+  },
+  "test": {
+    "include": ["__tests__/**/*.ts"],
+    "exclude": ["node_modules/", "dist/"]
+  }
+}

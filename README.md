@@ -83,6 +83,24 @@ pnpm dev
 
 Access: http://localhost:5173
 
+### 5. Frontend Tests
+
+```bash
+cd web
+
+# Run unit tests (excludes integration tests)
+pnpm test:run
+
+# Run tests with coverage
+pnpm test:coverage
+
+# Run all tests including integration (requires Supabase running)
+pnpm test:integration
+```
+
+- **Unit tests:** Use mocks, no external dependencies
+- **Integration tests:** Make real HTTP calls to Supabase Edge Functions
+
 ---
 
 ## Scripts
@@ -105,6 +123,23 @@ bash scripts/seed_notes_en.sh
 
 ```bash
 bash scripts/delete_all_notes.sh
+```
+
+### Run tests (Supabase Edge Functions)
+
+Requires [Deno](https://deno.land/) installed.
+
+```bash
+cd supabase
+
+# Run tests once
+deno task test:run
+
+# Run tests with coverage
+deno task test:coverage
+
+# Run integration tests (requires Supabase and Ollama running)
+deno task test:integration
 ```
 
 ---

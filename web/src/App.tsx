@@ -9,6 +9,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogTitle,
   DialogTrigger,
@@ -199,6 +200,9 @@ function App() {
                 </button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px] rounded-3xl p-0 overflow-hidden bg-white border-0 shadow-2xl">
+                <DialogDescription className="sr-only">
+                  Create a new note with title and content
+                </DialogDescription>
                 {/* Header com gradiente */}
                 <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-5 flex items-center justify-between">
                   <DialogTitle className="text-xl font-semibold text-white">Create New Note</DialogTitle>
