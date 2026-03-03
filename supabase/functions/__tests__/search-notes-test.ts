@@ -20,7 +20,7 @@ Deno.test("search-notes: should extract query from URL", () => {
 
 Deno.test("search-notes: should generate embedding for query", async () => {
   try {
-    const embedding = await generateEmbedding("test query");
+    const embedding = await generateEmbedding({ text: "test query" });
     assertExists(embedding);
     assertEquals(Array.isArray(embedding), true);
   } catch {

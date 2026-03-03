@@ -41,7 +41,10 @@ docker compose up -d
 Download the embedding model (required):
 
 ```bash
-docker exec -it notes-ollama ollama pull nomic-embed-text
+docker exec -it notes-ollama ollama pull qwen3-embedding:4b
+
+# Optional: Download chat model for future LLM features
+docker exec -it notes-ollama ollama pull qwen2.5:1.5b
 ```
 
 ### 2. Supabase local
@@ -140,6 +143,50 @@ deno task test:coverage
 
 # Run integration tests (requires Supabase and Ollama running)
 deno task test:integration
+```
+
+### Python Scripts (Embedding & Chat)
+
+Test scripts for embeddings and chat with Langchain. Located in `server/scripts/`.
+
+```bash
+# Chat with Qwen2.5 using Langchain
+server/venv/bin/python3 server/scripts/qwen25-langchain-chat.py
+
+# Generate embeddings with Ollama (qwen3-embedding)
+server/venv/bin/python3 server/scripts/qwen3-langchain-embedding.py
+
+# Generate embeddings with Gemini
+server/venv/bin/python3 server/scripts/gemini-api-embedding.py
+
+# Generate embeddings with MiniMax
+server/venv/bin/python3 server/scripts/minimax-embedding.py
+```
+
+---
+
+## Vector Data Types (pgvector)
+
+pgvector supports different types for storing embeddings:
+
+| Type | Dimension Limit | Recommended Use |
+|------|----------------|----------------|
+| `vector` | up to 2,000 | Small embeddings (OpenAI, nomic-embed-text) |
+| `halfvec` | up to 4,000 | Large embeddings (qwen3-embedding:4b with 2560 dim) |
+| `bit` | up to 64,000 | Binary search (high speed) |
+
+### Memory and Performance Differences
+
+- **vector**: Full precision (32-bit float), more memory
+- **halfvec**: Half precision (16-bit float), ~50% less memory
+- **bit**: 1 bit per dimension, smallest, but loses precision
+
+### Changing the Column Type
+
+```sql
+-- To use 2560-dimensional embeddings (e.g., qwen3-embedding)
+ALTER TABLE notes ALTER COLUMN embedding TYPE halfvec(2560);
+CREATE INDEX notes_embedding_idx ON notes USING hnsw (embedding halfvec_cosine_ops);
 ```
 
 ---
