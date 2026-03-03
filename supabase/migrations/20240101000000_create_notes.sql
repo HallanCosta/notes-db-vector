@@ -1,24 +1,23 @@
 -- Habilitar extensão pgvector
 create extension if not exists vector;
 
--- Tabela de notas
+-- Tabela de notas (usando halfvec para suportar até 4096 dimensões)
 create table if not exists notes (
     id uuid primary key default gen_random_uuid(),
     title text not null,
     content text not null,
-    embedding vector(768) not null,
+    embedding halfvec(2560) not null,
     created_at timestamp with time zone default now()
 );
 
--- Índice para busca por similaridade
+-- Índice para busca por similaridade (HNSW é mais rápido que IVFFlat)
 create index if not exists notes_embedding_idx
 on notes
-using ivfflat (embedding vector_cosine_ops)
-with (lists = 100);
+using hnsw (embedding halfvec_cosine_ops);
 
 -- Função RPC para busca vetorial
 create or replace function match_notes(
-    query_embedding vector(768),
+    query_embedding halfvec(2560),
     match_count int default 10
 )
 returns table (

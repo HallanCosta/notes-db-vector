@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'title and content are required' }), { status: 400 });
     }
 
-    const embedding = await generateEmbedding(content);
+    const embedding = await generateEmbedding({ text: content });
 
     // Insere no banco via PostgREST
     const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/notes`, {

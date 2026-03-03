@@ -38,7 +38,10 @@ docker compose up -d
 Isso sobe o Ollama na porta `11434`. Depois instale o modelo de embeddings:
 
 ```bash
-docker exec -it notes-ollama ollama pull nomic-embed-text
+docker exec -it notes-ollama ollama pull qwen3-embedding:4b
+
+# Opcional: Baixar modelo de chat para futuras funcionalidades de LLM
+docker exec -it notes-ollama ollama pull qwen2.5:1.5b
 ```
 
 ### 2. Supabase local
@@ -85,6 +88,24 @@ deno task test:coverage
 
 # Rodar testes de integração (requer Supabase e Ollama rodando)
 deno task test:integration
+```
+
+### Scripts Python (Embedding & Chat)
+
+Scripts de teste para embeddings e chat com Langchain. Located in `server/scripts/`.
+
+```bash
+# Chat com Qwen2.5 usando Langchain
+server/venv/bin/python3 server/scripts/qwen25-langchain-chat.py
+
+# Gerar embeddings com Ollama (qwen3-embedding)
+server/venv/bin/python3 server/scripts/qwen3-langchain-embedding.py
+
+# Gerar embeddings com Gemini
+server/venv/bin/python3 server/scripts/gemini-api-embedding.py
+
+# Gerar embeddings com MiniMax
+server/venv/bin/python3 server/scripts/minimax-embedding.py
 ```
 
 ### 4. Frontend
@@ -137,6 +158,32 @@ bash scripts/seed_notes_en.sh
 
 ```bash
 bash scripts/delete_all_notes.sh
+```
+
+---
+
+## Tipos de Dados Vetoriais (pgvector)
+
+O pgvector suporta diferentes tipos para armazenar embeddings:
+
+| Tipo | Limite de Dimensões | Uso Recomendado |
+|------|---------------------|-----------------|
+| `vector` | até 2.000 | Embeddings pequenos (OpenAI, nomic-embed-text) |
+| `halfvec` | até 4.000 | Embeddings grandes (qwen3-embedding:4b com 2560 dim) |
+| `bit` | até 64.000 | Busca binária (alta velocidade) |
+
+### Diferenças de Memória e Performance
+
+- **vector**: Precisão total (32-bit float), mais memória
+- **halfvec**: Metade da precisão (16-bit float), ~50% menos memória
+- **bit**: 1 bit por dimensão, menor ainda, mas perde precisão
+
+### Alterando o Tipo da Coluna
+
+```sql
+-- Para usar embeddings de 2560 dimensões (ex: qwen3-embedding)
+ALTER TABLE notes ALTER COLUMN embedding TYPE halfvec(2560);
+CREATE INDEX notes_embedding_idx ON notes USING hnsw (embedding halfvec_cosine_ops);
 ```
 
 ---

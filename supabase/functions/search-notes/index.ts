@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Query parameter q is required' }), { status: 400 });
     }
 
-    const embedding = await generateEmbedding(query);
+    const embedding = await generateEmbedding({ text: query });
 
     // Busca por similaridade usando RPC
     const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/match_notes`, {

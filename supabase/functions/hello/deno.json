@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "check": "deno check --watch=static/sw.js,supabase/functions/**/tsconfig.json supabase/functions/hello/index.ts"
+  },
+  "imports": {
+    "@supabase/functions-js": "jsr:@supabase/functions-js@2.4.1",
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@2.45.4"
+  }
+}

@@ -8,7 +8,7 @@ Deno.test("create-note: should have valid config", () => {
 
 Deno.test("create-note: generateEmbedding should return array", async () => {
   try {
-    const embedding = await generateEmbedding("test");
+    const embedding = await generateEmbedding({ text: "test" });
     assertExists(embedding);
     assertEquals(Array.isArray(embedding), true);
   } catch {
