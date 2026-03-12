@@ -41,16 +41,6 @@ class Database:
                     cur.execute(query)
                 return cur.fetchall()
 
-    def execute_one(self, query: str, params: Optional[tuple] = None) -> Optional[dict]:
-        """Execute a query and return a single result as dictionary."""
-        with self.get_connection() as conn:
-            with conn.cursor(row_factory=dict_row) as cur:
-                if params:
-                    cur.execute(query, params)
-                else:
-                    cur.execute(query)
-                return cur.fetchone()
-
     def execute_delete(self, query: str, params: Optional[tuple] = None) -> int:
         """Execute a DELETE or UPDATE query and return the number of affected rows."""
         with self.get_connection() as conn:
