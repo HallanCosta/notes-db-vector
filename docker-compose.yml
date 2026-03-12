@@ -1,25 +1,28 @@
 services:
-  # server:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: notes-server
-  #   ports:
-  #     - "8000:8000"
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
-  #   volumes:
-  #     - ./server:/app/server
-  #   working_dir: /app/server
-  #   depends_on:
-  #     ollama:
-  #       condition: service_started
-  #   networks:
-  #     - app-network
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notes-server
+    ports:
+      - "8000:8000"
+    env_file:
+      - server/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./server:/app/server
+    working_dir: /app/server
+    depends_on:
+      ollama:
+        condition: service_started
+    networks:
+      - app-network
+      - supabase_network_notes-crud
 
   # Ollama (LLM Server)
   ollama:
@@ -29,13 +32,18 @@ services:
       - "11434:11434"
     volumes:
       - ./.docker/ollama_data:/root/.ollama
+    devices:
+      - /dev/dri:/dev/dri
     restart: unless-stopped
     environment:
       - OLLAMA_KEEP_ALIVE=0
-
+      - OLLAMA_GPU_LAYERS=999
     networks:
       - app-network
+      - supabase_network_notes-crud
 
 networks:
   app-network:
     driver: bridge
+  supabase_network_notes-crud:
+    external: true

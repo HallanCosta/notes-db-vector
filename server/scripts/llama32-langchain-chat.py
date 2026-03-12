@@ -1,7 +1,7 @@
 """
 Chat com Ollama usando Langchain - Versão Avançada
 
-Modelo: qwen2.5:1.5b
+Modelo: llama3.2:1b
 Suporta busca semântica por notas do Supabase usando:
 - LangChain Tools (LLM decide quando buscar)
 - ConversationBufferMemory (histórico de chat)
@@ -9,16 +9,20 @@ Suporta busca semântica por notas do Supabase usando:
 
 import os
 import requests
+from typing import List
 from dotenv import load_dotenv
 load_dotenv()
 
 from langchain_ollama import ChatOllama
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import tool
 from langchain_core.chat_history import InMemoryChatMessageHistory
+from langchain_core.messages import HumanMessage, AIMessage
 
 # Configurações do Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL", "http://localhost:54321")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 
 
 # ============================================================
@@ -165,6 +169,13 @@ def count_notes() -> str:
         return f"Erro ao contar notas: {str(e)}"
 
 
+def normalize_args(tool_args: dict) -> dict:
+    """Normaliza args de diferentes formatos de LLM."""
+    if 'parameters' in tool_args:
+        return tool_args['parameters']
+    return {k: v for k, v in tool_args.items() if k not in ('function', 'name')}
+
+
 # Lista de ferramentas disponíveis
 tools = [search_notes, get_all_notes, count_notes]
 
@@ -175,9 +186,42 @@ tools = [search_notes, get_all_notes, count_notes]
 
 # Criar o modelo Ollama com binding de tools
 llm = ChatOllama(
-    model="qwen2.5:1.5b",
+    model="llama3.2:1b",
     temperature=0.2,
 ).bind_tools(tools)
+
+
+# ============================================================
+# PROMPT DO SISTEMA
+# ============================================================
+
+system_prompt = """Você é um assistente prestativo especializado em gerenciar notas.
+
+Você tem acesso às seguintes ferramentas:
+- search_notes: Busca notas porsimilaridade semântica
+- get_all_notes: Lista todas as notas do sistema
+- count_notes: Conta o total de notas
+
+Instruções:
+1. Quando o usuário pedir para buscar, procurar ou pesquisar notas, use a ferramenta search_notes
+2. Quando o usuário pedir para listar todas as notas, use get_all_notes
+3. Quando o usuário perguntar quantas notas existem, use count_notes
+4. Para outras perguntas, responda normalmente sem usar ferramentas
+
+Ao exibir notas:
+- Mantenha o título original
+- Não traduza o conteúdo das notas
+- Se o usuário pedir, forneça
+- Formate de forma clara e legível
+
+Respondas sempre em português, a menos que o usuário peça em outro idioma."""
+
+
+prompt = ChatPromptTemplate.from_messages([
+    ("system", system_prompt),
+    ("placeholder", "{chat_history}"),
+    ("user", "{input}")
+])
 
 
 # ============================================================
@@ -195,7 +239,7 @@ def get_history(session_id: str = "default") -> InMemoryChatMessageHistory:
     return _store[session_id]
 
 
-def get_chat_history():
+def get_chat_history() -> List:
     """Retorna o histórico de mensagens"""
     history = get_history()
     return history.messages
@@ -213,7 +257,7 @@ def clear_history():
 def run_chat():
     """Executa o chat interativo"""
     print("=" * 60)
-    print("Chat com Qwen2.5 (Langchain + Ollama) - Versão Avançada")
+    print("Chat com Llama3.2 (Langchain + Ollama) - Versão Avançada")
     print("Ferramentas disponíveis:")
     print("  - search_notes: Buscar notas por similaridade")
     print("  - get_all_notes: Listar todas as notas")
@@ -257,7 +301,7 @@ def run_chat():
             if hasattr(response, 'tool_calls') and response.tool_calls:
                 for tool_call in response.tool_calls:
                     tool_name = tool_call['name']
-                    tool_args = tool_call['args']
+                    tool_args = normalize_args(tool_call['args'])
 
                     print(f"\n  [Tool: {tool_name}]")
                     print(f"  [Args: {tool_args}]")

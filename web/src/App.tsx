@@ -15,8 +15,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, FileText, Home, Loader2, StickyNote } from "lucide-react"
+import { Plus, Search, FileText, Loader2, StickyNote, MessageSquare } from "lucide-react"
 import { API_CONFIG } from "./lib/api"
+import { ChatAI } from "./components/ChatAI"
 
 interface Note {
   id: string
@@ -34,7 +35,8 @@ function App() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [formData, setFormData] = useState({ title: "", content: "" })
   const [saving, setSaving] = useState(false)
-  const [activePage, setActivePage] = useState<"home" | "all">("home")
+  const [isSearching, setIsSearching] = useState(false)
+  const [activePage, setActivePage] = useState<"home" | "all" | "chat">("home")
 
   // Carregar notas
   const fetchNotes = async () => {
@@ -60,9 +62,11 @@ function App() {
   const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([])
+      setIsSearching(false)
       return
     }
 
+    setIsSearching(true)
     try {
       const results = await API_CONFIG.searchNotes({ query })
       const resultsArray = Array.isArray(results) ? results : []
@@ -70,6 +74,8 @@ function App() {
     } catch (error) {
       console.error("Erro na busca:", error)
       setSearchResults([])
+    } finally {
+      setIsSearching(false)
     }
   }, [])
 
@@ -114,7 +120,8 @@ function App() {
     setIsDialogOpen(true)
   }
 
-  const displayedNotes = searchQuery.trim() ? searchResults : notes
+  // Mostrar todas as notas ou resultado de busca
+  const displayedNotes = activePage !== "chat" ? (searchQuery.trim() ? searchResults : notes) : []
 
   // Formatar data
   const formatDate = (dateString: string) => {
@@ -159,6 +166,19 @@ function App() {
                 All Notes
               </button>
             </li>
+            <li>
+              <button
+                onClick={() => setActivePage("chat")}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  activePage === "chat"
+                    ? "bg-gray-100 text-foreground"
+                    : "text-muted-foreground hover:bg-gray-50 hover:text-foreground"
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Chat AI
+              </button>
+            </li>
           </ul>
         </nav>
 
@@ -178,7 +198,11 @@ function App() {
             {/* Search */}
             <div className="flex-1 max-w-xl">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                {isSearching ? (
+                  <Loader2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground animate-spin" />
+                ) : (
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                )}
                 <Input
                   placeholder="Search your notes..."
                   value={searchQuery}
@@ -254,13 +278,23 @@ function App() {
           </div>
         </header>
 
+        {/* Chat AI */}
+        {activePage === "chat" && (
+          <div className="h-[calc(100vh-120px)] px-8 pb-8">
+            <div className="h-full rounded-2xl border bg-white overflow-hidden">
+              <ChatAI />
+            </div>
+          </div>
+        )}
+
         {/* Notes List */}
+        {activePage !== "chat" && (
         <div className="px-8 pb-8">
           <h2 className="text-xl font-semibold mb-6 text-foreground">Your Notes</h2>
 
-          {loading ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          {loading || isSearching ? (
+            <div className="flex justify-center py-16 items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" /> <span>Searching...</span>
             </div>
           ) : displayedNotes.length === 0 ? (
             <div className="text-center py-16">
@@ -301,6 +335,7 @@ function App() {
             </div>
           )}
         </div>
+        )}
       </main>
     </div>
   )

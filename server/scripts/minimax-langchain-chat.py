@@ -1,10 +1,10 @@
 """
-Chat com Ollama usando Langchain - Versão Avançada
+Chat com MiniMax usando LangChain (OpenAI-compatible API)
 
-Modelo: qwen2.5:1.5b
+Modelo: MiniMax-M2.5
 Suporta busca semântica por notas do Supabase usando:
 - LangChain Tools (LLM decide quando buscar)
-- ConversationBufferMemory (histórico de chat)
+- InMemoryChatMessageHistory (histórico de chat)
 """
 
 import os
@@ -12,13 +12,17 @@ import requests
 from dotenv import load_dotenv
 load_dotenv()
 
-from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from langchain_core.chat_history import InMemoryChatMessageHistory
 
 # Configurações do Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL", "http://localhost:54321")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+
+# Configurações do MiniMax
+MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
+MINIMAX_BASE_URL = "https://api.minimax.io/v1"
 
 
 # ============================================================
@@ -156,10 +160,8 @@ def count_notes() -> str:
 
         if response.status_code == 200:
             notes = response.json()
-            total = len(notes)
-            return f"Total de notas no sistema: {total}"
-        else:
-            return f"Erro na API: {response.status_code}"
+            return f"Total de notas no sistema: {len(notes)}"
+        return f"Erro na API: {response.status_code}"
 
     except Exception as e:
         return f"Erro ao contar notas: {str(e)}"
@@ -173,10 +175,11 @@ tools = [search_notes, get_all_notes, count_notes]
 # CONFIGURAÇÃO DO LLM COM TOOLS
 # ============================================================
 
-# Criar o modelo Ollama com binding de tools
-llm = ChatOllama(
-    model="qwen2.5:1.5b",
-    temperature=0.2,
+llm = ChatOpenAI(
+    model="MiniMax-M2.5",
+    api_key=MINIMAX_API_KEY,
+    base_url=MINIMAX_BASE_URL,
+    temperature=1.0,
 ).bind_tools(tools)
 
 
@@ -184,7 +187,6 @@ llm = ChatOllama(
 # MEMÓRIA DE CONVERSA
 # ============================================================
 
-# "Banco de memória" em RAM
 _store: dict[str, InMemoryChatMessageHistory] = {}
 
 
@@ -213,7 +215,7 @@ def clear_history():
 def run_chat():
     """Executa o chat interativo"""
     print("=" * 60)
-    print("Chat com Qwen2.5 (Langchain + Ollama) - Versão Avançada")
+    print("Chat com MiniMax (LangChain) - MiniMax-M2.5")
     print("Ferramentas disponíveis:")
     print("  - search_notes: Buscar notas por similaridade")
     print("  - get_all_notes: Listar todas as notas")
@@ -247,13 +249,10 @@ def run_chat():
             continue
 
         try:
-            # Obtém histórico da sessão
             history = get_history()
 
-            # Invoca o LLM com tools
             response = llm.invoke(user_input)
 
-            # Verifica se o LLM chamou alguma ferramenta
             if hasattr(response, 'tool_calls') and response.tool_calls:
                 for tool_call in response.tool_calls:
                     tool_name = tool_call['name']
@@ -262,7 +261,6 @@ def run_chat():
                     print(f"\n  [Tool: {tool_name}]")
                     print(f"  [Args: {tool_args}]")
 
-                    # Executa a ferramenta
                     if tool_name == 'search_notes':
                         result = search_notes.invoke(tool_args)
                     elif tool_name == 'get_all_notes':
@@ -274,11 +272,9 @@ def run_chat():
 
                     print(f"  [Resultado: {str(result)[:100]}...]")
 
-                    # Adiciona ao histórico
                     history.add_user_message(user_input)
                     history.add_ai_message(response.content)
 
-                    # Chama novamente com o resultado da ferramenta
                     context_prompt = f"""Pergunta original: {user_input}
 
 Resultado da ferramenta {tool_name}: {result}
@@ -290,7 +286,6 @@ Com base no resultado acima, responda ao usuário de forma clara e útil."""
 
                     history.add_ai_message(final_response.content)
             else:
-                # Resposta normal sem ferramenta
                 print(f"\nAI: {response.content}")
                 history.add_user_message(user_input)
                 history.add_ai_message(response.content)
