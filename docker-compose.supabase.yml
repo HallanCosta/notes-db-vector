@@ -1,0 +1,22 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notes-server
+    ports:
+      - "127.0.0.1:8003:8000"
+    env_file:
+      - path: server/.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      SUPABASE_URL: http://host.docker.internal:54321
+      OLLAMA_URL: http://host.docker.internal:11435
+      OLLAMA_EMBEDDING_MODEL: qwen3-embedding:4b
+      EMBEDDING_DIMENSIONS: 2560
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./server:/app/server
+    working_dir: /app/server

@@ -1,6 +1,10 @@
 """
 Pydantic models for request/response validation.
 """
+from datetime import datetime
+from typing import Optional
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 
@@ -20,3 +24,20 @@ class ChatResponse(BaseModel):
     """Schema for chat response."""
     user_message: ChatMessage
     assistant_message: ChatMessage
+
+
+class NoteCreate(BaseModel):
+    """Payload used to create a note."""
+
+    title: str = Field(..., min_length=1, description="Título da nota")
+    content: str = Field(..., min_length=1, description="Conteúdo da nota")
+
+
+class Note(BaseModel):
+    """Note returned by the notes API."""
+
+    id: UUID
+    title: str
+    content: str
+    created_at: datetime
+    similarity: Optional[float] = None

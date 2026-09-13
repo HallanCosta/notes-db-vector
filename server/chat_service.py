@@ -2,7 +2,6 @@
 Business logic layer for chat operations with AI (LangChain + MiniMax).
 """
 import os
-import requests
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 
@@ -13,10 +12,8 @@ from langchain_core.tools import tool
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from database import db
 from models import ChatMessage
-
-# Configurações do Supabase
-SUPABASE_URL = os.getenv("SUPABASE_URL", "http://localhost:54321")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+from notes_service import list_notes as list_db_notes
+from notes_service import search_notes as search_db_notes
 
 
 # ============================================================
@@ -40,35 +37,21 @@ def search_notes(query: str) -> str:
         String formatada com as notas encontradas
     """
     try:
-        url = f"{SUPABASE_URL}/functions/v1/search-notes"
-        params = {"q": query}
+        notes = search_db_notes(query)
+        if not notes:
+            return "Nenhuma nota encontrada para a consulta."
 
-        headers = {
-            "apikey": SUPABASE_ANON_KEY,
-            "Authorization": f"Bearer {SUPABASE_ANON_KEY}"
-        }
+        formatted = []
+        for i, note in enumerate(notes, 1):
+            title = note.get("title", "Sem título")
+            content = note.get("content", "")
 
-        response = requests.get(url, params=params, headers=headers, timeout=30)
+            if len(content) > 500:
+                content = content[:500] + "..."
 
-        if response.status_code == 200:
-            notes = response.json()
-            if not notes:
-                return "Nenhuma nota encontrada para a consulta."
+            formatted.append(f"Nota {i}: {title}\n{content}")
 
-            formatted = []
-            for i, note in enumerate(notes, 1):
-                title = note.get("title", "Sem título")
-                content = note.get("content", "")
-
-                if len(content) > 500:
-                    content = content[:500] + "..."
-
-                formatted.append(f"Nota {i}: {title}\n{content}")
-
-            return "\n\n".join(formatted)
-
-        return f"Erro na API: {response.status_code}"
-
+        return "\n\n".join(formatted)
     except Exception as e:
         return f"Erro ao buscar notas: {str(e)}"
 
@@ -90,44 +73,26 @@ def get_all_notes(limit: int = 50) -> str:
         String formatada com todas as notas
     """
     try:
-        url = f"{SUPABASE_URL}/rest/v1/notes"
-        params = {
-            "select": "id,title,content,created_at",
-            "limit": limit,
-            "order": "created_at.desc"
-        }
+        notes = list_db_notes(limit)
+        if not notes:
+            return "Nenhuma nota encontrada no sistema."
 
-        headers = {
-            "apikey": SUPABASE_ANON_KEY,
-            "Authorization": f"Bearer {SUPABASE_ANON_KEY}"
-        }
+        total = len(notes)
+        formatted = [f"Total de notas: {total}\n"]
 
-        response = requests.get(url, params=params, headers=headers, timeout=30)
+        for i, note in enumerate(notes, 1):
+            title = note.get("title", "Sem título")
+            content = note.get("content", "")
+            created = str(note.get("created_at", ""))[:10]
 
-        if response.status_code == 200:
-            notes = response.json()
-            if not notes:
-                return "Nenhuma nota encontrada no sistema."
+            if len(content) > 150:
+                content = content[:150] + "..."
 
-            total = len(notes)
-            formatted = [f"Total de notas: {total}\n"]
+            formatted.append(f"\nNota {i}: {title} ({created})")
+            if content:
+                formatted.append(content)
 
-            for i, note in enumerate(notes, 1):
-                title = note.get("title", "Sem título")
-                content = note.get("content", "")
-                created = note.get("created_at", "")[:10]
-
-                if len(content) > 150:
-                    content = content[:150] + "..."
-
-                formatted.append(f"\nNota {i}: {title} ({created})")
-                if content:
-                    formatted.append(content)
-
-            return "\n".join(formatted)
-
-        return f"Erro na API: {response.status_code}"
-
+        return "\n".join(formatted)
     except Exception as e:
         return f"Erro ao buscar notas: {str(e)}"
 
@@ -142,23 +107,8 @@ def count_notes() -> str:
     - Quiser saber o total de notas
     """
     try:
-        url = f"{SUPABASE_URL}/rest/v1/notes"
-        params = {"select": "id", "limit": 1000}
-
-        headers = {
-            "apikey": SUPABASE_ANON_KEY,
-            "Authorization": f"Bearer {SUPABASE_ANON_KEY}"
-        }
-
-        response = requests.get(url, params=params, headers=headers, timeout=30)
-
-        if response.status_code == 200:
-            notes = response.json()
-            total = len(notes)
-            return f"Total de notas no sistema: {total}"
-        else:
-            return f"Erro na API: {response.status_code}"
-
+        total = len(list_db_notes(1000))
+        return f"Total de notas no sistema: {total}"
     except Exception as e:
         return f"Erro ao contar notas: {str(e)}"
 
