@@ -1,27 +1,19 @@
 import os
 from dotenv import load_dotenv
-from langchain_community.embeddings import MiniMaxEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 load_dotenv()
 
-api_key = os.getenv("MINIMAX_API_KEY")
-group_id = os.getenv("MINIMAX_GROUP_ID")
-
-# Instantiate MiniMax Embeddings
-embeddings = MiniMaxEmbeddings(
-    model="embo-01",
-    api_key=api_key,
-    group_id=group_id
-)
-
 # Embed single text
+embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+
 query = "The meaning of life is 42"
 query_embedding = embeddings.embed_query(query)
 print(f"Query: {query}")
 print(f"Embedding: {query_embedding[:5]}... (dimension: {len(query_embedding)})")
 
 # Embed multiple texts
-documents = ["This is a test query1.", "This is a test query2."]
+documents = ["This is a test query1.", "Esta é uma consulta em português."]
 doc_embeddings = embeddings.embed_documents(documents)
 print(f"\nDocuments: {documents}")
 print(f"Embeddings: {[e[:5] for e in doc_embeddings]}")

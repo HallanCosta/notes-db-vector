@@ -1,37 +1,59 @@
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: notes-postgres
+    environment:
+      POSTGRES_DB: notes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - ./.docker/postgres_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d notes"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app-network
+
   server:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: notes-server
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8003:8000"
     env_file:
-      - server/.env
+      - path: server/.env
+        required: false
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
-      - SUPABASE_URL=http://host.docker.internal:54321
-      - MINIMAX_API_KEY=${MINIMAX_API_KEY}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/notes
+      - EMBEDDING_PROVIDER=ollama
+      - EMBEDDING_DIMENSIONS=2560
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_EMBEDDING_MODEL=qwen3-embedding:4b
     volumes:
       - ./server:/app/server
     working_dir: /app/server
     depends_on:
+      postgres:
+        condition: service_healthy
       ollama:
         condition: service_started
     networks:
       - app-network
-      - supabase_network_notes-crud
 
   # Ollama (LLM Server)
   ollama:
     image: ollama/ollama:latest
     container_name: notes-ollama
-    ports:
-      - "11434:11434"
     volumes:
       - ./.docker/ollama_data:/root/.ollama
+    ports:
+      - "127.0.0.1:11435:11434"
     devices:
       - /dev/dri:/dev/dri
     restart: unless-stopped
@@ -40,10 +62,7 @@ services:
       - OLLAMA_GPU_LAYERS=999
     networks:
       - app-network
-      - supabase_network_notes-crud
 
 networks:
   app-network:
     driver: bridge
-  supabase_network_notes-crud:
-    external: true

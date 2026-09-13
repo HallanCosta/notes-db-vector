@@ -2,13 +2,19 @@
 
 [🇺🇸 Read this README in English](https://github.com/HallanCosta/notes-db-vector/blob/main/README.md)
 
-Aplicação de notas com busca semântica usando Supabase, Ollama e React.
+Aplicação de notas com busca semântica usando React, PostgreSQL/pgvector e Ollama.
+
+O projeto possui dois modos de backend, selecionados no frontend por
+`VITE_BACKEND_MODE`:
+
+- `fastapi`: modo local leve, com FastAPI, PostgreSQL + pgvector e Ollama.
+- `supabase`: modo compatível com as Edge Functions e o Realtime existentes.
 
 ## Requisitos
 
-- [Supabase CLI](https://supabase.com/docs/guides/cli)
 - [Docker](https://www.docker.com)
 - Node.js + pnpm
+- [Supabase CLI](https://supabase.com/docs/guides/cli) apenas para o modo Supabase
 
 ---
 
@@ -27,15 +33,17 @@ supabase --version
 
 ---
 
-## Subindo o ambiente
-
-### 1. Ollama (Docker)
+## Subindo o ambiente local leve
 
 ```bash
 docker compose up -d
 ```
 
-Isso sobe o Ollama na porta `11434`. Depois instale o modelo de embeddings:
+O Compose sobe PostgreSQL com pgvector, FastAPI e Ollama. O PostgreSQL fica
+disponível para ferramentas locais em `127.0.0.1:5433`, a API em
+`http://127.0.0.1:8003` e o Ollama do projeto em `127.0.0.1:11435`.
+
+Instale o modelo de embeddings:
 
 ```bash
 docker exec -it notes-ollama ollama pull qwen3-embedding:4b
@@ -44,34 +52,32 @@ docker exec -it notes-ollama ollama pull qwen3-embedding:4b
 docker exec -it notes-ollama ollama pull qwen2.5:1.5b
 ```
 
-### 2. Supabase local
+### Frontend no modo FastAPI
 
 ```bash
-# Subir os serviços
-supabase start
-
-# Criar as tabelas via migrations
-supabase db reset
+bash scripts/start-fastapi.sh
 ```
 
-### 3. Edge Functions
+O banco local é inicializado automaticamente por
+`postgres/init/001_schema.sql`. Os dados ficam persistidos em
+`.docker/postgres_data`.
 
-Crie o arquivo `supabase/.env` com o host do Ollama:
+### Modo Supabase preservado
 
-```env
-OLLAMA_URL=http://host.docker.internal:11434
-```
-
-Rode as edge functions:
+Para continuar usando o modo anterior, sem remover as Edge Functions:
 
 ```bash
-supabase functions serve --env-file supabase/.env
+bash scripts/start-supabase.sh
 ```
 
-Após iniciar, você pode acessar:
+Os scripts desligam os serviços do modo escolhido quando você pressiona `Ctrl+C`.
+O script Supabase não carrega automaticamente `supabase/.env`, evitando misturar
+credenciais remotas com o ambiente local.
 
-- **Dashboard do Supabase (inclui Edge Functions):** http://127.0.0.1:54323/project/default/functions
-- **URL da API:** http://127.0.0.1:54321
+Os endpoints do modo FastAPI são:
+
+- **API:** http://127.0.0.1:8003
+- **Documentação:** http://127.0.0.1:8003/docs
 
 ### Rodar testes (Edge Functions do Supabase)
 
@@ -140,7 +146,8 @@ pnpm test:integration
 
 ## Scripts
 
-Os scripts ficam na pasta `scripts/` e precisam do Supabase e Ollama rodando.
+Os scripts existentes ficam na pasta `scripts/` e usam as Edge Functions do Supabase.
+No modo FastAPI, use a interface web ou a documentação em `/docs`.
 
 ### Seed de dados
 
@@ -202,33 +209,34 @@ Por exemplo, buscar por termos de fintech retorna apenas notas financeiras, sem 
 - `random key` → notas sobre cadastro de chaves Pix
 - `barcode` → notas sobre boleto bancário
 
-> **Nota:** A pasta `server/` não está sendo usada. Era uma versão em Python que integrava com o pgvector no Docker. Atualmente, este projeto usa Supabase (PostgreSQL + pgvector) em vez disso.
+> **Nota:** A pasta `server/` implementa o modo local FastAPI. A pasta `supabase/`
+> continua implementando o modo alternativo com Edge Functions e Realtime.
 
 ---
 
 ## Estrutura
 
 ```
+postgres/init/
+  001_schema.sql # Schema local com PostgreSQL + pgvector
+server/
+  main.py       # API FastAPI para o modo local
+  notes_service.py # CRUD, busca vetorial e embeddings Ollama
 supabase/
-  migrations/   # Criação das tabelas, extensão pgvector e função match_notes
-  functions/    # Edge functions (create-note, get-notes, search-notes...)
-  .env          # Variáveis de ambiente das edge functions
+  migrations/   # Schema equivalente para o modo Supabase
+  functions/    # Edge Functions preservadas
 web/
   src/          # Frontend React + TypeScript
-  .env          # Variáveis de ambiente do frontend
-scripts/
-  seed_notes_br.sh          # Seed com notas em português
-  seed_notes_en.sh          # Seed com notas em inglês (particularmente o modelo usado se sai melhor com notas inglês)
-  delete_all_notes.sh # Deleta todas as notas do banco
+scripts/        # Scripts legados que usam o modo Supabase
 ```
 
 ---
 
 ## Tecnologias
 
-- **Backend:** Supabase (PostgreSQL + pgvector)
-- **Edge Functions:** Deno (Supabase Edge Functions)
-- **Embeddings:** Ollama (nomic-embed-text)
+- **Backend local:** FastAPI + PostgreSQL/pgvector
+- **Backend alternativo:** Supabase (PostgreSQL + Edge Functions + Realtime)
+- **Embeddings:** Ollama (`qwen3-embedding:4b`, 2560 dimensões)
 - **Frontend:** React + TypeScript + Vite
 - **UI:** Tailwind CSS + shadcn/ui
 - **Ícones:** Lucide React

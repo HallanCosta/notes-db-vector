@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Send, Trash2, MessageSquare } from "lucide-react"
+import { Send, Sparkles, Trash2 } from "lucide-react"
 import { API_CONFIG } from "../lib/api"
 import { supabase } from "../lib/supabase"
+import { isSupabaseMode } from "../lib/backend"
 
 interface ChatMessage {
   id: string
@@ -16,6 +17,12 @@ interface ChatAIProps {
   sessionId?: string
 }
 
+const suggestedPrompts = [
+  { icon: "✦", label: "Summarize my latest notes" },
+  { icon: "⌁", label: "What ideas connect across my notes?" },
+  { icon: "↗", label: "Help me turn a note into a plan" },
+]
+
 export function ChatAI({ sessionId = "default" }: ChatAIProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
@@ -25,12 +32,28 @@ export function ChatAI({ sessionId = "default" }: ChatAIProps) {
 
   // Carregar mensagens iniciais
   useEffect(() => {
+    const loadMessages = async () => {
+      setLoading(true)
+      try {
+        const data = await API_CONFIG.getChatMessages({ sessionId })
+        const messagesArray = Array.isArray(data) ? data : []
+        setMessages(messagesArray)
+      } catch (error) {
+        console.error("Erro ao carregar mensagens:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     loadMessages()
   }, [sessionId])
 
   // Supabase Realtime subscription
   useEffect(() => {
-    const channel = supabase
+    if (!isSupabaseMode || !supabase) return
+
+    const client = supabase
+    const channel = client
       .channel(`chat:${sessionId}`)
       .on(
         "postgres_changes",
@@ -64,27 +87,14 @@ export function ChatAI({ sessionId = "default" }: ChatAIProps) {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      client.removeChannel(channel)
     }
   }, [sessionId])
 
   // Scroll para última mensagem
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" })
   }, [messages])
-
-  const loadMessages = async () => {
-    setLoading(true)
-    try {
-      const data = await API_CONFIG.getChatMessages({ sessionId })
-      const messagesArray = Array.isArray(data) ? data : []
-      setMessages(messagesArray)
-    } catch (error) {
-      console.error("Erro ao carregar mensagens:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSendMessage = async () => {
     if (!input.trim() || sending) return
@@ -103,11 +113,30 @@ export function ChatAI({ sessionId = "default" }: ChatAIProps) {
     setMessages(prev => [...prev, tempUserMessage])
 
     try {
-      await API_CONFIG.sendChatMessage({
+      const response = await API_CONFIG.sendChatMessage({
         message: userMessage,
         sessionId,
       })
-      // A resposta da AI chega via Supabase Realtime (INSERT na tabela chat_messages)
+
+      // No modo FastAPI não existe Supabase Realtime: a resposta vem no próprio HTTP.
+      if (!isSupabaseMode || !supabase) {
+        const now = Date.now()
+        setMessages(prev => [
+          ...prev.filter(m => m.id !== tempUserMessage.id),
+          {
+            id: `user-${now}`,
+            role: "user",
+            content: response.user_message.content,
+            created_at: new Date(now).toISOString(),
+          },
+          {
+            id: `assistant-${now}`,
+            role: "assistant",
+            content: response.assistant_message.content,
+            created_at: new Date(now).toISOString(),
+          },
+        ])
+      }
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error)
       // Remove mensagem temporária em caso de erro
@@ -136,10 +165,12 @@ export function ChatAI({ sessionId = "default" }: ChatAIProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between border-b px-5 py-4">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-5 h-5" />
-          <h2 className="font-semibold">Chat AI</h2>
+          <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-md shadow-violet-700/20">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <h2 className="font-semibold tracking-[-0.02em]">Chat AI</h2>
         </div>
         <Button
           variant="ghost"
@@ -152,7 +183,7 @@ export function ChatAI({ sessionId = "default" }: ChatAIProps) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_50%_44%,#fbfaff,#fff_48%)] p-5">
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="bg-muted rounded-lg px-4 py-3 flex items-center gap-1.5">
@@ -173,27 +204,49 @@ export function ChatAI({ sessionId = "default" }: ChatAIProps) {
             </div>
           </div>
         ) : messages.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
-            <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Pergunte algo sobre suas notas</p>
+          <div className="mx-auto flex max-w-2xl flex-col items-center py-8 text-center">
+            <div className="mb-4 grid h-16 w-16 place-items-center rounded-[22px] bg-gradient-to-br from-violet-400 to-violet-700 text-white shadow-lg shadow-violet-700/25">
+              <Sparkles className="h-7 w-7 stroke-[1.5]" />
+            </div>
+            <h3 className="text-xl font-semibold tracking-[-0.04em] text-foreground">
+              Ask anything about your notes
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Start with a prompt below or ask in your own words.
+            </p>
+            <div className="mt-5 grid w-full gap-2 sm:grid-cols-3">
+              {suggestedPrompts.map((prompt) => (
+                <button
+                  key={prompt.label}
+                  type="button"
+                  onClick={() => setInput(prompt.label)}
+                  className="min-h-16 rounded-xl border border-violet-100 bg-white px-3 py-3 text-left text-xs leading-5 text-slate-600 shadow-sm transition-colors hover:border-violet-300 hover:bg-violet-50"
+                >
+                  <span className="mb-1.5 block text-base text-violet-600">{prompt.icon}</span>
+                  {prompt.label}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-            >
+          <div className="space-y-4">
+            {messages.map((message) => (
               <div
-                className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                  message.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
-                }`}
+                key={message.id}
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                    message.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-white shadow-sm ring-1 ring-slate-100"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
         {sending && (
           <div className="flex justify-start">
@@ -219,17 +272,22 @@ export function ChatAI({ sessionId = "default" }: ChatAIProps) {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t">
-        <div className="flex gap-2">
+      <div className="border-t bg-white p-4">
+        <div className="flex items-end gap-2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Digite sua mensagem..."
-            className="min-h-[44px] max-h-32 resize-none"
+            placeholder="Ask about your notes..."
+            className="min-h-[42px] max-h-32 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
             disabled={sending}
           />
-          <Button onClick={handleSendMessage} disabled={!input.trim() || sending}>
+          <Button
+            size="icon"
+            onClick={handleSendMessage}
+            disabled={!input.trim() || sending}
+            className="h-9 w-9 shrink-0 rounded-lg"
+          >
             <Send className="w-4 h-4" />
           </Button>
         </div>

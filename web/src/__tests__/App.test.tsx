@@ -11,12 +11,18 @@ const mockNotes = [
 const mockGetNotes = vi.fn()
 const mockCreateNote = vi.fn()
 const mockSearchNotes = vi.fn()
+const mockGetChatMessages = vi.fn()
+const mockSendChatMessage = vi.fn()
+const mockClearChat = vi.fn()
 
 vi.mock('../lib/api', () => ({
   API_CONFIG: {
     getNotes: (...args: unknown[]) => mockGetNotes(...args),
     createNote: (...args: unknown[]) => mockCreateNote(...args),
     searchNotes: (...args: unknown[]) => mockSearchNotes(...args),
+    getChatMessages: (...args: unknown[]) => mockGetChatMessages(...args),
+    sendChatMessage: (...args: unknown[]) => mockSendChatMessage(...args),
+    clearChat: (...args: unknown[]) => mockClearChat(...args),
   },
 }))
 
@@ -51,8 +57,38 @@ it('should render empty state when no notes', async () => {
   render(<App />)
 
   await waitFor(() => {
-    expect(screen.getByText(/no notes yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/your knowledge base starts here/i)).toBeInTheDocument()
   })
+})
+
+it('should render a useful empty state for searches without results', async () => {
+  mockGetNotes.mockResolvedValue(mockNotes)
+  mockSearchNotes.mockResolvedValue([])
+
+  render(<App />)
+
+  const searchInput = screen.getByPlaceholderText(/search your notes/i)
+  await userEvent.type(searchInput, 'quantum computing')
+
+  await waitFor(() => {
+    expect(screen.getByText(/no notes found for/i)).toBeInTheDocument()
+  })
+
+  await userEvent.click(screen.getByRole('button', { name: /clear search/i }))
+  expect(searchInput).toHaveValue('')
+})
+
+it('should show Chat AI prompt suggestions', async () => {
+  mockGetNotes.mockResolvedValue([])
+  mockGetChatMessages.mockResolvedValue([])
+
+  render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: /chat ai/i }))
+
+  expect(screen.getByText(/ask anything about your notes/i)).toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: /summarize my latest notes/i }))
+  expect(screen.getByPlaceholderText(/ask about your notes/i)).toHaveValue('Summarize my latest notes')
 })
 
 it('should open create note dialog', async () => {

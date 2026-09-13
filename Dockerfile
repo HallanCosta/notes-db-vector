@@ -6,7 +6,8 @@ WORKDIR /app/server
 COPY server/requirements.txt .
 
 # Instala dependências (será cacheado pelo Docker)
-RUN pip install --no-cache-dir -r requirements.txt
+# Usando mirror chinês para evitar problemas de rede
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 # Copia o código da aplicação
 COPY server/ .
