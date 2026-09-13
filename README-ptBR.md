@@ -146,19 +146,76 @@ pnpm test:integration
 
 ## Scripts
 
-Os scripts existentes ficam na pasta `scripts/` e usam as Edge Functions do Supabase.
-No modo FastAPI, use a interface web ou a documentação em `/docs`.
+Os seeders usam a fixture compartilhada
+`scripts/data/notes_pt_br.json` e geram embeddings reais com o Qwen no Ollama.
+O mesmo comando possui adaptadores para o FastAPI e para as Edge Functions do
+Supabase, sem remover o fluxo legado.
 
-### Seed de dados
+### Seed de notas em português
 
-Popula o banco com notas e embeddings reais gerados pelo Ollama.
+Inicie o modo FastAPI antes do seed:
 
 ```bash
-# Notas em inglês
-bash scripts/seed_notes_en.sh
+docker compose up -d postgres ollama server
+docker exec notes-ollama ollama pull qwen3-embedding:4b
+```
 
-# Notas em português
-# bash scripts/seed_notes_br.sh
+Popule o PostgreSQL/pgvector local:
+
+```bash
+# Insere 36 notas em português, prefixadas com [seed:pt-br]
+bash scripts/seed_notes_fastapi.sh --reset
+
+# Forma equivalente, com opções adicionais do script Python
+python3 scripts/seed_notes.py --backend fastapi --reset
+
+# Remove somente as notas da fixture, sem apagar notas do usuário
+bash scripts/seed_notes_fastapi.sh --cleanup
+```
+
+Para o modo Supabase preservado, depois de iniciar o Supabase local e as Edge
+Functions, use o mesmo dataset pelo adaptador existente:
+
+```bash
+# O script chama scripts/seed_notes.py --backend supabase
+bash scripts/seed_notes_br.sh --reset
+bash scripts/seed_notes_br.sh --cleanup
+```
+
+O prefixo evita misturar dados de teste com notas manuais. Ele pode ser alterado
+sem perder a limpeza segura:
+
+```bash
+python3 scripts/seed_notes.py --backend fastapi --prefix "[e2e:pt-br]" --reset
+python3 scripts/seed_notes.py --backend fastapi --prefix "[e2e:pt-br]" --cleanup
+```
+
+Em caso de erro durante a inserção, o script remove automaticamente os IDs
+criados naquela execução. O modo FastAPI também expõe `DELETE /notes/{id}` para
+que os testes possam limpar cada nota sem usar o endpoint destrutivo de apagar
+todas.
+
+### E2E de busca semântica
+
+Com PostgreSQL, Ollama/Qwen e FastAPI disponíveis em `127.0.0.1:8003`, rode:
+
+```bash
+cd web
+pnpm test:e2e
+```
+
+O Playwright inicia o Vite quando necessário, executa o seed da fixture, testa
+consultas em português sobre Pix, boleto e carbonara, valida o primeiro
+resultado do ranking e limpa as notas ao final. Para outra API FastAPI:
+
+```bash
+E2E_API_URL=http://127.0.0.1:8003 pnpm test:e2e
+```
+
+O teste precisa do modelo local:
+
+```bash
+docker exec notes-ollama ollama pull qwen3-embedding:4b
 ```
 
 ### Deletar todas as notas
