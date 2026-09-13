@@ -15,6 +15,7 @@ interface ChatMessage {
 
 interface ChatAIProps {
   sessionId?: string
+  noteCount?: number
 }
 
 const suggestedPrompts = [
@@ -23,7 +24,7 @@ const suggestedPrompts = [
   { icon: "↗", label: "Help me turn a note into a plan" },
 ]
 
-export function ChatAI({ sessionId = "default" }: ChatAIProps) {
+export function ChatAI({ sessionId = "default", noteCount = 0 }: ChatAIProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -163,30 +164,34 @@ export function ChatAI({ sessionId = "default" }: ChatAIProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="notes-chat-root">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-5 py-4">
-        <div className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 text-white shadow-md shadow-violet-700/20">
+      <div className="notes-chat-header">
+        <div className="notes-chat-brand">
+          <div className="notes-chat-icon">
             <Sparkles className="h-4 w-4" />
           </div>
           <h2 className="font-semibold tracking-[-0.02em]">Chat AI</h2>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClearChat}
-          title="Limpar chat"
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
+        <div className="notes-chat-header-actions">
+          <span className="notes-chat-meta">Local workspace · {noteCount} {noteCount === 1 ? "note" : "notes"}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearChat}
+            title="Limpar chat"
+            className="notes-chat-clear"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_50%_44%,#fbfaff,#fff_48%)] p-5">
+      <div className="notes-chat-messages">
         {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="bg-muted rounded-lg px-4 py-3 flex items-center gap-1.5">
+          <div className="notes-chat-loading">
+            <div className="notes-chat-typing">
               {[0, 150, 300].map((delay) => (
                 <span
                   key={delay}
@@ -204,8 +209,8 @@ export function ChatAI({ sessionId = "default" }: ChatAIProps) {
             </div>
           </div>
         ) : messages.length === 0 ? (
-          <div className="mx-auto flex max-w-2xl flex-col items-center py-8 text-center">
-            <div className="mb-4 grid h-16 w-16 place-items-center rounded-[22px] bg-gradient-to-br from-violet-400 to-violet-700 text-white shadow-lg shadow-violet-700/25">
+          <div className="notes-chat-empty">
+            <div className="notes-chat-empty-icon">
               <Sparkles className="h-7 w-7 stroke-[1.5]" />
             </div>
             <h3 className="text-xl font-semibold tracking-[-0.04em] text-foreground">
@@ -214,43 +219,49 @@ export function ChatAI({ sessionId = "default" }: ChatAIProps) {
             <p className="mt-2 text-sm text-muted-foreground">
               Start with a prompt below or ask in your own words.
             </p>
-            <div className="mt-5 grid w-full gap-2 sm:grid-cols-3">
+            <div className="notes-chat-prompts">
               {suggestedPrompts.map((prompt) => (
                 <button
                   key={prompt.label}
                   type="button"
                   onClick={() => setInput(prompt.label)}
-                  className="min-h-16 rounded-xl border border-violet-100 bg-white px-3 py-3 text-left text-xs leading-5 text-slate-600 shadow-sm transition-colors hover:border-violet-300 hover:bg-violet-50"
+                  className="notes-chat-prompt"
                 >
-                  <span className="mb-1.5 block text-base text-violet-600">{prompt.icon}</span>
+                  <span>{prompt.icon}</span>
                   {prompt.label}
                 </button>
               ))}
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="notes-chat-thread">
+            <div className="notes-chat-date">Conversation</div>
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                className={`notes-chat-message ${message.role === "user" ? "notes-chat-message--user" : "notes-chat-message--assistant"}`}
               >
+                <div className="notes-chat-message-avatar">
+                  {message.role === "user" ? "HC" : <Sparkles className="h-3.5 w-3.5" />}
+                </div>
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-white shadow-sm ring-1 ring-slate-100"
-                  }`}
+                  className="notes-chat-message-body"
                 >
-                  <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                  <div className="notes-chat-message-label">
+                    {message.role === "user" ? "You" : "Notes AI · grounded in your workspace"}
+                  </div>
+                  <div className="notes-chat-bubble">
+                    <p>{message.content}</p>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
         {sending && (
-          <div className="flex justify-start">
-            <div className="bg-muted rounded-lg px-4 py-3 flex items-center gap-1.5">
+          <div className="notes-chat-message notes-chat-message--assistant">
+            <div className="notes-chat-message-avatar"><Sparkles className="h-3.5 w-3.5" /></div>
+            <div className="notes-chat-typing">
               {[0, 150, 300].map((delay) => (
                 <span
                   key={delay}
@@ -272,21 +283,21 @@ export function ChatAI({ sessionId = "default" }: ChatAIProps) {
       </div>
 
       {/* Input */}
-      <div className="border-t bg-white p-4">
-        <div className="flex items-end gap-2 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+      <div className="notes-chat-input-area">
+        <div className="notes-chat-input">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about your notes..."
-            className="min-h-[42px] max-h-32 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+            className="notes-chat-textarea"
             disabled={sending}
           />
           <Button
             size="icon"
             onClick={handleSendMessage}
             disabled={!input.trim() || sending}
-            className="h-9 w-9 shrink-0 rounded-lg"
+            className="notes-chat-send h-9 w-9 shrink-0 rounded-lg"
           >
             <Send className="w-4 h-4" />
           </Button>

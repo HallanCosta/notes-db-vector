@@ -88,6 +88,11 @@ def create_note(title: str, content: str) -> Dict[str, Any]:
     return note
 
 
+def delete_note(note_id: str) -> int:
+    """Delete one note and return the number of rows removed."""
+    return db.execute_delete("DELETE FROM notes WHERE id = %s", (note_id,))
+
+
 def search_notes(query_text: str, limit: int = 6) -> List[Dict[str, Any]]:
     embedding = _vector_literal(generate_embedding(query_text))
     return db.execute_query(

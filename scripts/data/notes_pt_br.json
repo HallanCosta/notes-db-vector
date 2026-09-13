@@ -1,0 +1,182 @@
+[
+  {
+    "category": "pagamentos",
+    "title": "Pix e liquidação instantânea",
+    "content": "O Pix é o sistema brasileiro de pagamentos instantâneos que permite enviar dinheiro entre contas em poucos segundos, a qualquer hora do dia, inclusive em fins de semana e feriados."
+  },
+  {
+    "category": "pagamentos",
+    "title": "Chaves Pix e identificação de contas",
+    "content": "As chaves Pix identificam uma conta por CPF, CNPJ, telefone, e-mail ou chave aleatória. Elas simplificam o preenchimento dos dados do recebedor, mas devem ser conferidas antes da confirmação da transferência."
+  },
+  {
+    "category": "pagamentos",
+    "title": "QR Code dinâmico para cobranças",
+    "content": "Uma cobrança Pix com QR Code dinâmico pode carregar valor, vencimento, identificador e descrição da transação. O código é gerado para aquela cobrança e ajuda a conciliar pagamentos automaticamente."
+  },
+  {
+    "category": "pagamentos",
+    "title": "Segurança nas transferências Pix",
+    "content": "A segurança do Pix combina autenticação, biometria, limites por horário, análise de comportamento e monitoramento de fraude. Reduzir limites noturnos e revisar dispositivos autorizados são boas práticas para proteger a conta."
+  },
+  {
+    "category": "pagamentos",
+    "title": "SPI e a infraestrutura do Banco Central",
+    "content": "O Sistema de Pagamentos Instantâneos, conhecido como SPI, liquida as transações Pix entre instituições participantes. A infraestrutura funciona continuamente e conecta bancos, cooperativas e instituições de pagamento."
+  },
+  {
+    "category": "pagamentos",
+    "title": "DICT e resolução de chaves",
+    "content": "O Diretório de Identificadores de Contas, chamado DICT, associa chaves Pix às contas dos participantes. A consulta permite descobrir a instituição destinatária antes que a ordem de pagamento seja liquidada."
+  },
+  {
+    "category": "pagamentos",
+    "title": "Limites e devolução de uma transação",
+    "content": "Os limites de transferência podem variar conforme horário, dispositivo, relacionamento e política do banco. Em caso de fraude ou erro, a instituição deve orientar o cliente sobre contestação e devolução do pagamento."
+  },
+  {
+    "category": "pagamentos",
+    "title": "Boleto bancário registrado",
+    "content": "O boleto bancário é um instrumento de cobrança com beneficiário, pagador, valor, vencimento e linha digitável. O registro no banco emissor permite validar os dados antes do pagamento e acompanhar a liquidação."
+  },
+  {
+    "category": "pagamentos",
+    "title": "Código de barras e linha digitável",
+    "content": "A linha digitável representa os números do código de barras de um boleto e facilita a digitação em aplicativos bancários. Conferir banco, beneficiário, valor e vencimento ajuda a evitar pagamentos indevidos."
+  },
+  {
+    "category": "pagamentos",
+    "title": "TED entre instituições financeiras",
+    "content": "A TED é uma transferência eletrônica entre contas de instituições diferentes. Ela depende do horário de processamento bancário e normalmente é creditada no mesmo dia útil quando enviada dentro da janela operacional."
+  },
+  {
+    "category": "pagamentos",
+    "title": "Open Finance e iniciação de pagamentos",
+    "content": "O Open Finance permite compartilhar dados financeiros com consentimento e iniciar pagamentos a partir de outra instituição. A jornada pode usar o Pix para autorizar uma transferência sem copiar manualmente os dados da conta."
+  },
+  {
+    "category": "pagamentos",
+    "title": "ISO 20022 em mensagens financeiras",
+    "content": "O ISO 20022 organiza mensagens financeiras em estruturas ricas e padronizadas. Bancos e sistemas de pagamento usam o padrão para transportar informações de transferências, status, rejeições e conciliação entre instituições."
+  },
+  {
+    "category": "tecnologia",
+    "title": "PostgreSQL com pgvector",
+    "content": "A extensão pgvector permite armazenar vetores no PostgreSQL e ordenar registros pela distância entre embeddings. Índices HNSW ajudam a acelerar consultas de similaridade quando a base cresce."
+  },
+  {
+    "category": "tecnologia",
+    "title": "Embeddings semânticos",
+    "content": "Um embedding transforma texto em uma lista de números que representa seu significado. Textos sobre assuntos parecidos tendem a ficar próximos no espaço vetorial, mesmo quando usam palavras diferentes."
+  },
+  {
+    "category": "tecnologia",
+    "title": "API leve com FastAPI",
+    "content": "FastAPI é um framework Python para APIs com validação por tipos, documentação OpenAPI e execução assíncrona. Em um projeto local, ele pode servir o CRUD de notas sem exigir a plataforma completa do Supabase."
+  },
+  {
+    "category": "tecnologia",
+    "title": "Testes E2E com Playwright",
+    "content": "O Playwright automatiza o navegador para testar fluxos completos de uma aplicação. Um teste de busca semântica deve criar ou carregar dados, interagir com a tela e verificar se o resultado mais relevante aparece primeiro."
+  },
+  {
+    "category": "tecnologia",
+    "title": "Idempotência em scripts de seed",
+    "content": "Um seeder idempotente pode ser executado várias vezes sem acumular lixo ou duplicar dados de teste. Prefixos controlados, IDs registrados e uma rotina de limpeza tornam o ambiente previsível para desenvolvimento e CI."
+  },
+  {
+    "category": "tecnologia",
+    "title": "Ollama para modelos locais",
+    "content": "O Ollama executa modelos de linguagem e de embeddings localmente. Ele é útil em testes porque evita enviar conteúdo para serviços externos, funciona sem cobrança por requisição e mantém o modelo Qwen no ambiente do projeto."
+  },
+  {
+    "category": "tecnologia",
+    "title": "Migrations versionadas",
+    "content": "Migrations versionadas registram a evolução do schema do banco e permitem reproduzir a estrutura em ambientes diferentes. Extensões, tabelas, índices e funções de busca vetorial devem ter uma fonte de verdade revisável."
+  },
+  {
+    "category": "tecnologia",
+    "title": "Observabilidade de uma busca vetorial",
+    "content": "Uma busca vetorial deve registrar latência, modelo usado, dimensão do embedding e quantidade de resultados. Esses dados ajudam a identificar modelos ausentes, incompatibilidade de dimensões e degradação do índice."
+  },
+  {
+    "category": "cinema",
+    "title": "Matrix e realidade simulada",
+    "content": "Matrix é um filme de ficção científica sobre uma realidade simulada por máquinas. A história acompanha Neo, a escolha entre as pílulas e uma jornada de libertação com referências filosóficas e tecnologia digital."
+  },
+  {
+    "category": "cinema",
+    "title": "Clube da Luta e crítica ao consumismo",
+    "content": "Clube da Luta acompanha um narrador insatisfeito que conhece Tyler Durden e questiona trabalho, consumo e identidade. O filme de David Fincher tornou-se conhecido por sua narrativa não confiável e atmosfera sombria."
+  },
+  {
+    "category": "cinema",
+    "title": "O Poderoso Chefão e a família Corleone",
+    "content": "O Poderoso Chefão mostra a transformação de Michael Corleone dentro da família mafiosa Corleone. O drama de Francis Ford Coppola explora lealdade, poder, sucessão e o custo de proteger um império familiar."
+  },
+  {
+    "category": "cinema",
+    "title": "Oppenheimer e a corrida nuclear",
+    "content": "Oppenheimer é um drama biográfico sobre o físico J. Robert Oppenheimer e o desenvolvimento da bomba atômica durante o Projeto Manhattan. O filme discute responsabilidade científica, política e as consequências de uma descoberta."
+  },
+  {
+    "category": "cinema",
+    "title": "Interestelar e viagens pelo espaço",
+    "content": "Interestelar acompanha astronautas que atravessam um buraco de minhoca em busca de um novo lar para a humanidade. O filme mistura relatividade, dilatação do tempo, relações familiares e exploração espacial."
+  },
+  {
+    "category": "cinema",
+    "title": "Breaking Bad e a transformação de Walter White",
+    "content": "Breaking Bad conta a história de Walter White, professor de química que passa a fabricar metanfetamina após receber um diagnóstico grave. A série explora ambição, escolhas morais, consequências e a transformação de uma identidade."
+  },
+  {
+    "category": "cinema",
+    "title": "A Viagem de Chihiro e o mundo dos espíritos",
+    "content": "A Viagem de Chihiro acompanha uma menina presa em um mundo de espíritos e criaturas mágicas. A animação do Studio Ghibli fala sobre coragem, amadurecimento, memória e respeito pela natureza."
+  },
+  {
+    "category": "cinema",
+    "title": "Parasita e desigualdade social",
+    "content": "Parasita mostra a aproximação entre duas famílias de classes sociais muito diferentes. O filme sul-coreano combina suspense, humor ácido e drama para discutir desigualdade, espaço urbano e relações de trabalho."
+  },
+  {
+    "category": "culinária",
+    "title": "Feijoada brasileira",
+    "content": "A feijoada combina feijão preto, carnes suínas, linguiça e acompanhamentos como arroz, couve, farofa e laranja. É um prato brasileiro encorpado, normalmente preparado em fogo baixo para concentrar os sabores."
+  },
+  {
+    "category": "culinária",
+    "title": "Carbonara romana",
+    "content": "A carbonara tradicional é uma massa romana feita com ovos, queijo pecorino, guanciale e pimenta-do-reino. O molho cremoso se forma com a emulsão do ovo, queijo e água quente do cozimento, sem creme de leite."
+  },
+  {
+    "category": "culinária",
+    "title": "Pizza napolitana",
+    "content": "A pizza napolitana tem massa fina, borda aerada, tomate, muçarela e azeite. A fermentação longa melhora o sabor e a textura, enquanto o forno muito quente assa a pizza rapidamente."
+  },
+  {
+    "category": "culinária",
+    "title": "Ramen japonês",
+    "content": "Ramen é uma sopa japonesa de macarrão servida em caldo de shoyu, missô, sal ou tonkotsu. Ovo marinado, nori, cebolinha e chashu são coberturas comuns para equilibrar sabor e textura."
+  },
+  {
+    "category": "culinária",
+    "title": "Sushi e arroz temperado",
+    "content": "Sushi combina arroz temperado com vinagre e ingredientes como peixe, frutos do mar ou vegetais. Nigiri, maki e temaki são formatos diferentes que valorizam corte, temperatura e equilíbrio entre os sabores."
+  },
+  {
+    "category": "culinária",
+    "title": "Brigadeiro de chocolate",
+    "content": "Brigadeiro é um doce brasileiro preparado com leite condensado, chocolate ou cacau e manteiga. A mistura cozinha até soltar do fundo da panela e depois pode ser enrolada e coberta com granulado."
+  },
+  {
+    "category": "culinária",
+    "title": "Pão de queijo mineiro",
+    "content": "Pão de queijo é um quitute mineiro feito com polvilho, queijo, ovos e leite. A massa assa em pequenas porções e fica dourada por fora, macia por dentro e naturalmente sem farinha de trigo."
+  },
+  {
+    "category": "culinária",
+    "title": "Moqueca de peixe",
+    "content": "A moqueca é um ensopado de peixe cozido com tomate, cebola, pimentão, coentro e leite de coco ou azeite de dendê, conforme a tradição regional. O preparo deve preservar a textura delicada do peixe."
+  }
+]

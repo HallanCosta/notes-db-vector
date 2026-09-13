@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from models import ChatRequest, ChatResponse, Note, NoteCreate
 from chat_service import ChatService
-from notes_service import create_note, delete_all_notes, get_note, list_notes, search_notes
+from notes_service import create_note, delete_all_notes, delete_note, get_note, list_notes, search_notes
 
 # Load environment variables
 load_dotenv()
@@ -86,6 +86,21 @@ async def find_note(note_id: str):
     if note is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nota não encontrada")
     return note
+
+
+@app.delete("/notes/{note_id}", tags=["Notes"])
+async def remove_note(note_id: str):
+    """Delete one note, used by isolated seed and E2E cleanup."""
+    try:
+        deleted = delete_note(note_id)
+    except Exception as error:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao remover nota: {error}",
+        )
+    if deleted == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nota não encontrada")
+    return {"deleted": deleted}
 
 
 @app.post("/notes", response_model=List[Note], status_code=status.HTTP_201_CREATED, tags=["Notes"])
