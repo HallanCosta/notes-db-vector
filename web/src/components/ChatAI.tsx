@@ -11,6 +11,7 @@ interface ChatMessage {
   role: "user" | "assistant"
   content: string
   created_at: string
+  isError?: boolean
 }
 
 interface ChatAIProps {
@@ -23,6 +24,20 @@ const suggestedPrompts = [
   { icon: "⌁", label: "What ideas connect across my notes?" },
   { icon: "↗", label: "Help me turn a note into a plan" },
 ]
+
+export const CHAT_CONNECTION_ERROR_MESSAGE =
+  "Não consegui me conectar com o assistente. Verifique a conexão e tente novamente."
+
+function createConnectionErrorMessage(): ChatMessage {
+  const now = Date.now()
+  return {
+    id: `assistant-error-${now}-${Math.random().toString(36).slice(2)}`,
+    role: "assistant",
+    content: CHAT_CONNECTION_ERROR_MESSAGE,
+    created_at: new Date(now).toISOString(),
+    isError: true,
+  }
+}
 
 export function ChatAI({ sessionId = "default", noteCount = 0 }: ChatAIProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -41,6 +56,7 @@ export function ChatAI({ sessionId = "default", noteCount = 0 }: ChatAIProps) {
         setMessages(messagesArray)
       } catch (error) {
         console.error("Erro ao carregar mensagens:", error)
+        setMessages(prev => [...prev, createConnectionErrorMessage()])
       } finally {
         setLoading(false)
       }
@@ -67,18 +83,20 @@ export function ChatAI({ sessionId = "default", noteCount = 0 }: ChatAIProps) {
         (payload) => {
           const newMsg = payload.new as ChatMessage
           setMessages((prev) => {
-            // Evita duplicata de mensagem temporária do usuário
-            const hasDuplicate = prev.some(
-              (m) => m.role === newMsg.role && m.content === newMsg.content && m.id.startsWith("temp-")
+            // Reconcile local HTTP messages with their persisted Realtime rows.
+            const localMessage = prev.find(
+              (m) =>
+                (m.id.startsWith("temp-") || m.id.startsWith("local-")) &&
+                m.role === newMsg.role &&
+                m.content === newMsg.content
             )
-            if (hasDuplicate) {
+            if (localMessage) {
               return prev.map((m) =>
-                m.id.startsWith("temp-") && m.role === newMsg.role && m.content === newMsg.content
+                m.id === localMessage.id
                   ? newMsg
                   : m
               )
             }
-            // Evita duplicata do assistente (já adicionado via resposta da API)
             const alreadyExists = prev.some((m) => m.id === newMsg.id)
             if (alreadyExists) return prev
             return [...prev, newMsg]
@@ -119,29 +137,28 @@ export function ChatAI({ sessionId = "default", noteCount = 0 }: ChatAIProps) {
         sessionId,
       })
 
-      // No modo FastAPI não existe Supabase Realtime: a resposta vem no próprio HTTP.
-      if (!isSupabaseMode || !supabase) {
-        const now = Date.now()
-        setMessages(prev => [
-          ...prev.filter(m => m.id !== tempUserMessage.id),
-          {
-            id: `user-${now}`,
-            role: "user",
-            content: response.user_message.content,
-            created_at: new Date(now).toISOString(),
-          },
-          {
-            id: `assistant-${now}`,
-            role: "assistant",
-            content: response.assistant_message.content,
-            created_at: new Date(now).toISOString(),
-          },
-        ])
-      }
+      // Render the HTTP response immediately. Realtime, when enabled, later
+      // replaces these local IDs with the persisted database rows.
+      const now = Date.now()
+      setMessages(prev => [
+        ...prev.filter(m => m.id !== tempUserMessage.id),
+        {
+          id: `local-user-${now}`,
+          role: "user",
+          content: response.user_message.content,
+          created_at: new Date(now).toISOString(),
+        },
+        {
+          id: `local-assistant-${now}`,
+          role: "assistant",
+          content: response.assistant_message.content,
+          created_at: new Date(now).toISOString(),
+        },
+      ])
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error)
-      // Remove mensagem temporária em caso de erro
-      setMessages(prev => prev.filter(m => m.id !== tempUserMessage.id))
+      // Preserve the attempted message and explain the failure in the chat.
+      setMessages(prev => [...prev, createConnectionErrorMessage()])
     } finally {
       setSending(false)
     }
@@ -153,6 +170,7 @@ export function ChatAI({ sessionId = "default", noteCount = 0 }: ChatAIProps) {
       setMessages([])
     } catch (error) {
       console.error("Erro ao limpar chat:", error)
+      setMessages(prev => [...prev, createConnectionErrorMessage()])
     }
   }
 
@@ -188,7 +206,7 @@ export function ChatAI({ sessionId = "default", noteCount = 0 }: ChatAIProps) {
       </div>
 
       {/* Messages */}
-      <div className="notes-chat-messages">
+      <div className="notes-chat-messages" aria-live="polite">
         {loading ? (
           <div className="notes-chat-loading">
             <div className="notes-chat-typing">
@@ -250,7 +268,7 @@ export function ChatAI({ sessionId = "default", noteCount = 0 }: ChatAIProps) {
                   <div className="notes-chat-message-label">
                     {message.role === "user" ? "You" : "Notes AI · grounded in your workspace"}
                   </div>
-                  <div className="notes-chat-bubble">
+                  <div className={`notes-chat-bubble ${message.isError ? "notes-chat-bubble--error" : ""}`}>
                     <p>{message.content}</p>
                   </div>
                 </div>
@@ -297,6 +315,7 @@ export function ChatAI({ sessionId = "default", noteCount = 0 }: ChatAIProps) {
             size="icon"
             onClick={handleSendMessage}
             disabled={!input.trim() || sending}
+            aria-label="Enviar mensagem"
             className="notes-chat-send h-9 w-9 shrink-0 rounded-lg"
           >
             <Send className="w-4 h-4" />

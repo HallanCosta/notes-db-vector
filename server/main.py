@@ -1,6 +1,7 @@
 """
 FastAPI application for Chat AI with Notes.
 """
+import logging
 from typing import List
 from fastapi import FastAPI, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,8 @@ from dotenv import load_dotenv
 from models import ChatRequest, ChatResponse, Note, NoteCreate
 from chat_service import ChatService
 from notes_service import create_note, delete_all_notes, delete_note, get_note, list_notes, search_notes
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -145,11 +148,12 @@ async def send_message(chat_request: ChatRequest):
             message=chat_request.message,
             session_id=chat_request.session_id
         )
-    except Exception as e:
+    except Exception as error:
+        logger.exception("Falha ao processar mensagem do chat")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao processar mensagem: {str(e)}"
-        )
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Não foi possível conectar ao assistente. Tente novamente mais tarde.",
+        ) from error
 
 
 @app.get(

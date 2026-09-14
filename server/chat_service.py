@@ -1,7 +1,4 @@
-"""
-Business logic layer for chat operations with AI (LangChain + MiniMax).
-"""
-import os
+"""Business logic layer for chat operations with an OpenAI-compatible LLM."""
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 
@@ -10,6 +7,7 @@ load_dotenv()
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from langchain_core.chat_history import InMemoryChatMessageHistory
+from chat_config import load_chat_settings
 from database import db
 from models import ChatMessage
 from notes_service import list_notes as list_db_notes
@@ -122,17 +120,28 @@ def normalize_args(tool_args: dict) -> dict:
 
 # Lista de ferramentas disponíveis
 tools = [search_notes, get_all_notes, count_notes]
+CHAT_MAX_OUTPUT_TOKENS = 512
 
-# Configuração do MiniMax
-MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
+def create_llm():
+    """Create the configured chat client only when a message is sent."""
+    settings = load_chat_settings()
+    return ChatOpenAI(
+        model=settings.model,
+        api_key=settings.api_key,
+        base_url=settings.base_url,
+        temperature=settings.temperature,
+        timeout=settings.timeout,
+        max_retries=settings.max_retries,
+        max_tokens=CHAT_MAX_OUTPUT_TOKENS,
+    ).bind_tools(tools)
 
-# LLM com binding de tools
-llm = ChatOpenAI(
-    model="MiniMax-M2.5",
-    api_key=MINIMAX_API_KEY,
-    base_url="https://api.minimax.io/v1",
-    temperature=1.0,
-).bind_tools(tools)
+
+def get_response_content(response: Any) -> str:
+    """Return non-empty text or fail so the client can show its fallback."""
+    content = getattr(response, "content", None)
+    if not isinstance(content, str) or not content.strip():
+        raise RuntimeError("Chat provider returned an empty response")
+    return content
 
 # Armazenamento em memória por sessão
 _store: Dict[str, InMemoryChatMessageHistory] = {}
@@ -173,20 +182,26 @@ class ChatService:
     @staticmethod
     def process_message(message: str, session_id: str = "default") -> Dict[str, Any]:
         """Processa mensagem do usuário e retorna resposta da AI."""
+        chat_llm = create_llm()
+
         # Salva mensagem do usuário no banco
         ChatService.save_message_to_db(session_id, "user", message)
 
         # Obtém histórico da sessão
         history = ChatService.get_history(session_id)
 
-        # Invoca o LLM diretamente (igual ao script minimax-langchain-chat.py)
-        response = llm.invoke(message)
+        # Invoke the configured provider directly.
+        response = chat_llm.invoke(message)
 
         # Verifica se o LLM chamou alguma ferramenta
-        final_content = response.content
+        tool_calls = getattr(response, "tool_calls", None) or []
 
-        if hasattr(response, 'tool_calls') and response.tool_calls:
-            for tool_call in response.tool_calls:
+        if tool_calls:
+            initial_content = getattr(response, "content", "")
+            if not isinstance(initial_content, str):
+                initial_content = ""
+
+            for tool_call in tool_calls:
                 tool_name = tool_call['name']
                 tool_args = normalize_args(tool_call['args'])
 
@@ -202,7 +217,7 @@ class ChatService:
 
                 # Adiciona ao histórico
                 history.add_user_message(message)
-                history.add_ai_message(response.content)
+                history.add_ai_message(initial_content)
 
                 # Chama novamente com o resultado da ferramenta (sem chain para não re-triggerar tools)
                 context_prompt = f"""Pergunta original: {message}
@@ -211,10 +226,12 @@ Resultado da ferramenta {tool_name}: {result}
 
 Com base no resultado acima, responda ao usuário de forma clara e útil."""
 
-                final_response = llm.invoke(context_prompt)
-                final_content = final_response.content
+                final_response = chat_llm.invoke(context_prompt)
+                final_content = get_response_content(final_response)
 
                 history.add_ai_message(final_content)
+        else:
+            final_content = get_response_content(response)
 
         # Adiciona ao histórico
         history.add_user_message(message)

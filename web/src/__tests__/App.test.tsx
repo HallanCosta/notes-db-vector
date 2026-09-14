@@ -2,6 +2,7 @@ import { it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../App'
+import { CHAT_CONNECTION_ERROR_MESSAGE } from '../components/ChatAI'
 
 const mockNotes = [
   { id: '1', title: 'Test Note 1', content: 'Content 1', created_at: '2024-01-01' },
@@ -89,6 +90,33 @@ it('should show Chat AI prompt suggestions', async () => {
   expect(screen.getByText(/ask anything about your notes/i)).toBeInTheDocument()
   await userEvent.click(screen.getByRole('button', { name: /summarize my latest notes/i }))
   expect(screen.getByPlaceholderText(/ask about your notes/i)).toHaveValue('Summarize my latest notes')
+})
+
+it('should show a connection error in the chat and allow retrying', async () => {
+  mockGetNotes.mockResolvedValue([])
+  mockGetChatMessages.mockResolvedValue([])
+  mockSendChatMessage
+    .mockRejectedValueOnce(new Error('Assistant unavailable'))
+    .mockResolvedValueOnce({
+      user_message: { role: 'user', content: 'second try' },
+      assistant_message: { role: 'assistant', content: 'A resposta chegou.' },
+    })
+
+  render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: /chat ai/i }))
+  const input = screen.getByPlaceholderText(/ask about your notes/i)
+  await userEvent.type(input, 'first try')
+  await userEvent.click(screen.getByRole('button', { name: /enviar mensagem/i }))
+
+  expect(await screen.findByText(CHAT_CONNECTION_ERROR_MESSAGE)).toBeInTheDocument()
+  expect(screen.getByText('first try')).toBeInTheDocument()
+  expect(input).not.toBeDisabled()
+
+  await userEvent.type(input, 'second try')
+  await userEvent.click(screen.getByRole('button', { name: /enviar mensagem/i }))
+
+  expect(await screen.findByText('A resposta chegou.')).toBeInTheDocument()
 })
 
 it('should open create note dialog', async () => {

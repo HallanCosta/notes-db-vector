@@ -79,3 +79,14 @@ it('should return headers with authorization', () => {
   expect(headers).toHaveProperty('Content-Type', 'application/json')
   expect(headers).toHaveProperty('Authorization')
 })
+
+it('should reject an invalid chat response payload', async () => {
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ assistant_message: { role: 'assistant', content: 'missing user message' } }),
+  })
+
+  await expect(
+    API_CONFIG.sendChatMessage({ message: 'hello', sessionId: 'test-session' })
+  ).rejects.toThrow('Invalid chat response')
+})

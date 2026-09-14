@@ -275,7 +275,7 @@ function App() {
             </div>
 
             <div className="notes-top-actions">
-              <span className="notes-shortcut">Press ⌘ K to create</span>
+              {/*<span className="notes-shortcut">Press ⌘ K to create</span>*/}
               <DialogTrigger asChild>
                 <button type="button" className="notes-new-button" aria-label="New Note" title="New Note">
                   <Plus className="h-4 w-4" />

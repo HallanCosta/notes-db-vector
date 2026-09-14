@@ -4,6 +4,16 @@
 
 Aplicação de notas com busca semântica usando React, PostgreSQL/pgvector e Ollama.
 
+## Screenshots
+
+### Workspace de notas
+
+![Workspace de notas](designs/notes.png)
+
+### Chat AI
+
+![Chat AI](designs/chat-ai.png)
+
 O projeto possui dois modos de backend, selecionados no frontend por
 `VITE_BACKEND_MODE`:
 
@@ -33,29 +43,27 @@ supabase --version
 
 ---
 
-## Subindo o ambiente local leve
+## Subindo o ambiente local leve (FastAPI)
 
-```bash
-docker compose up -d
-```
-
-O Compose sobe PostgreSQL com pgvector, FastAPI e Ollama. O PostgreSQL fica
-disponível para ferramentas locais em `127.0.0.1:5433`, a API em
-`http://127.0.0.1:8003` e o Ollama do projeto em `127.0.0.1:11435`.
-
-Instale o modelo de embeddings:
-
-```bash
-docker exec -it notes-ollama ollama pull qwen3-embedding:4b
-
-# Opcional: Baixar modelo de chat para futuras funcionalidades de LLM
-docker exec -it notes-ollama ollama pull qwen2.5:1.5b
-```
-
-### Frontend no modo FastAPI
+Na raiz do projeto, suba todo o ambiente local com um único comando:
 
 ```bash
 bash scripts/start-fastapi.sh
+```
+
+O script inicia PostgreSQL/pgvector, Ollama, FastAPI e o frontend. Ele também
+garante que o modelo `qwen3-embedding:4b` esteja disponível. Configure
+`server/.env` com `GROQ_API_KEY` antes de iniciar o chat.
+
+Acesse a aplicação em `http://localhost:5173`, a API em
+`http://127.0.0.1:8003` e a documentação em `http://127.0.0.1:8003/docs`.
+Pressione `Ctrl+C` para desligar os serviços FastAPI iniciados pelo script.
+
+Se precisar somente dos serviços do backend em segundo plano, use:
+
+```bash
+docker compose up -d postgres ollama server
+docker exec notes-ollama ollama pull qwen3-embedding:4b
 ```
 
 O banco local é inicializado automaticamente por
@@ -64,7 +72,9 @@ O banco local é inicializado automaticamente por
 
 ### Modo Supabase preservado
 
-Para continuar usando o modo anterior, sem remover as Edge Functions:
+O Supabase continua disponível como um modo opcional separado. Use-o somente
+quando precisar do fluxo com Edge Functions e Realtime; não execute os dois
+scripts de inicialização ao mesmo tempo:
 
 ```bash
 bash scripts/start-supabase.sh
@@ -74,52 +84,43 @@ Os scripts desligam os serviços do modo escolhido quando você pressiona `Ctrl+
 O script Supabase não carrega automaticamente `supabase/.env`, evitando misturar
 credenciais remotas com o ambiente local.
 
+### Configuração do Chat AI com Groq
+
+O chat usa um provedor compatível com a API da OpenAI. Para usar o Groq, copie o
+arquivo de exemplo e configure a chave somente no backend:
+
+```bash
+cp server/.env.example server/.env
+```
+
+Mantendo a estrutura atual, preencha a chave no arquivo `server/.env`:
+
+```env
+GROQ_API_KEY=sua_chave_groq
+```
+
+A chave não deve ser colocada no frontend, commitada ou incluída em logs. Quando
+`CHAT_PROVIDER` não for definido, o endpoint oficial OpenAI-compatible do Groq e
+o modelo `qwen/qwen3.8-27b` são usados automaticamente. Eles podem ser
+substituídos com `CHAT_PROVIDER` e `GROQ_MODEL`. Para uma configuração legada
+com MiniMax, defina `CHAT_PROVIDER=minimax` e forneça
+`MINIMAX_API_KEY`/`MINIMAX_MODEL`.
+
+Se o provedor estiver indisponível, a interface mantém a mensagem enviada e
+exibe: “Não consegui me conectar com o assistente. Verifique a conexão e tente
+novamente.”
+
 Os endpoints do modo FastAPI são:
 
 - **API:** http://127.0.0.1:8003
 - **Documentação:** http://127.0.0.1:8003/docs
 
-### Rodar testes (Edge Functions do Supabase)
-
-Requer o [Deno](https://deno.land/) instalado.
-
-```bash
-cd supabase
-
-# Rodar testes uma vez
-deno task test:run
-
-# Rodar testes com coverage
-deno task test:coverage
-
-# Rodar testes de integração (requer Supabase e Ollama rodando)
-deno task test:integration
-```
-
-### Scripts Python (Embedding & Chat)
-
-Scripts de teste para embeddings e chat com Langchain. Located in `server/scripts/`.
-
-```bash
-# Chat com Qwen2.5 usando Langchain
-server/venv/bin/python3 server/scripts/qwen25-langchain-chat.py
-
-# Gerar embeddings com Ollama (qwen3-embedding)
-server/venv/bin/python3 server/scripts/qwen3-langchain-embedding.py
-
-# Gerar embeddings com Gemini
-server/venv/bin/python3 server/scripts/gemini-api-embedding.py
-
-# Gerar embeddings com MiniMax
-server/venv/bin/python3 server/scripts/minimax-embedding.py
-```
-
-### 4. Frontend
+### Frontend somente (manual)
 
 ```bash
 cd web
 pnpm install
-pnpm dev
+VITE_BACKEND_MODE=fastapi pnpm dev
 ```
 
 Acesse: http://localhost:5173
@@ -182,6 +183,12 @@ bash scripts/seed_notes_br.sh --reset
 bash scripts/seed_notes_br.sh --cleanup
 ```
 
+O fixture legado do Supabase em inglês também está disponível:
+
+```bash
+bash scripts/seed_notes_en.sh
+```
+
 O prefixo evita misturar dados de teste com notas manuais. Ele pode ser alterado
 sem perder a limpeza segura:
 
@@ -222,6 +229,42 @@ docker exec notes-ollama ollama pull qwen3-embedding:4b
 
 ```bash
 bash scripts/delete_all_notes.sh
+```
+
+### Rodar testes (Edge Functions do Supabase)
+
+Requer o [Deno](https://deno.land/) instalado.
+
+```bash
+cd supabase
+
+# Rodar testes uma vez
+deno task test:run
+
+# Rodar testes com coverage
+deno task test:coverage
+
+# Rodar testes de integração (requer Supabase e Ollama rodando)
+deno task test:integration
+```
+
+### Scripts Python (Embedding & Chat)
+
+Scripts de teste para embeddings e chat com Langchain. Localizados em
+`server/scripts/`.
+
+```bash
+# Chat com Qwen2.5 usando Langchain
+server/venv/bin/python3 server/scripts/qwen25-langchain-chat.py
+
+# Gerar embeddings com Ollama (qwen3-embedding)
+server/venv/bin/python3 server/scripts/qwen3-langchain-embedding.py
+
+# Gerar embeddings com Gemini
+server/venv/bin/python3 server/scripts/gemini-api-embedding.py
+
+# Gerar embeddings com MiniMax
+server/venv/bin/python3 server/scripts/minimax-embedding.py
 ```
 
 ---
