@@ -1,349 +1,130 @@
-# Notes CRUD - Vector Search
+# Notes CRUD - FastAPI
 
-[🇧🇷 Leia este README em Português](https://github.com/HallanCosta/notes-db-vector/blob/main/README-ptBR.md)
+[🇧🇷 Leia este README em Português](README-ptBR.md)
 
-Notes application with semantic search using React, PostgreSQL/pgvector and Ollama.
+A notes application with semantic search using React, FastAPI, PostgreSQL/pgvector
+and Ollama. The default local workflow runs entirely through the FastAPI stack.
+
+The previous Supabase backend is still available in a separate workflow. See
+[README-supabase.md](README-supabase.md) when you need it.
 
 ## Screenshots
 
-### Notes workspace
-
 ![Notes workspace](designs/notes.png)
 
-### Chat AI
-
 ![Chat AI](designs/chat-ai.png)
-
-The project has two backend modes selected with `VITE_BACKEND_MODE`:
-
-- `fastapi`: lightweight local mode with FastAPI, PostgreSQL + pgvector and Ollama.
-- `supabase`: existing Edge Functions and Realtime mode, kept intact.
 
 ## Requirements
 
 - [Docker](https://www.docker.com)
-- Node.js + pnpm
-- [Supabase CLI](https://supabase.com/docs/guides/cli) for Supabase mode only
+- Node.js and pnpm
+- Python 3.11+ only for local scripts or tests
 
----
+## Quick start
 
-## Supabase CLI Installation
-
-```bash
-# Download
-curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar xz
-
-# Move to PATH
-sudo mv supabase /usr/local/bin/
-
-# Verify installation
-supabase --version
-```
-
----
-
-## Lightweight local environment (FastAPI)
-
-From the project root, start the complete local environment with one command:
-
-```bash
-bash scripts/start-fastapi.sh
-```
-
-The script starts PostgreSQL/pgvector, Ollama, FastAPI and the frontend. It also
-ensures that the `qwen3-embedding:4b` model is available. Configure
-`server/.env` with `GROQ_API_KEY` before starting the chat.
-
-Access the application at `http://localhost:5173`, the API at
-`http://127.0.0.1:8003` and the API docs at `http://127.0.0.1:8003/docs`.
-Press `Ctrl+C` to stop the FastAPI services started by the script.
-
-If you need only the backend services in the background, run:
-
-```bash
-docker compose up -d postgres ollama server
-docker exec notes-ollama ollama pull qwen3-embedding:4b
-```
-
-The local database is initialized from `postgres/init/001_schema.sql` and persists
-data in `.docker/postgres_data`.
-
-### Existing Supabase mode
-
-Supabase remains available as an optional, separate backend mode. Use it only when
-you need the Edge Functions and Realtime flow; do not run both start scripts at
-the same time.
-
-```bash
-bash scripts/start-supabase.sh
-```
-
-Both scripts stop the selected mode when you press `Ctrl+C`. The Supabase script
-does not automatically load `supabase/.env`, avoiding accidental use of remote
-credentials in the local environment.
-
-### Chat AI with Groq
-
-The chat uses an OpenAI-compatible provider. To use Groq, copy the example file
-and configure the key on the backend only:
+From the project root, configure the backend once:
 
 ```bash
 cp server/.env.example server/.env
 ```
 
-With the current `.env` structure, set the key in `server/.env`:
+Add your Groq key to `server/.env` if you want to use Chat AI:
 
 ```env
-GROQ_API_KEY=your_groq_api_key
+GROQ_API_KEY=your_groq_api_key_here
 ```
 
-Never put the key in the frontend, commit it, or include it in logs. When
-`CHAT_PROVIDER` is not set, the Groq OpenAI-compatible endpoint and
-`qwen/qwen3.8-27b` model are selected automatically. They can be overridden with
-`CHAT_PROVIDER` and `GROQ_MODEL`. Existing MiniMax setups can set
-`CHAT_PROVIDER=minimax` and provide `MINIMAX_API_KEY`/`MINIMAX_MODEL`.
-
-When the provider is unavailable, the interface keeps the submitted message
-and shows: “Não consegui me conectar com o assistente. Verifique a conexão e
-tente novamente.”
-
-FastAPI endpoints:
-
-- **API:** http://127.0.0.1:8003
-- **Documentation:** http://127.0.0.1:8003/docs
-
-### Frontend only (manual)
+Install the frontend dependencies and start the complete local environment:
 
 ```bash
 cd web
 pnpm install
-VITE_BACKEND_MODE=fastapi pnpm dev
+cd ..
+bash scripts/start-fastapi.sh
 ```
 
-Access: http://localhost:5173
+The script starts PostgreSQL/pgvector, Ollama, FastAPI and the Vite frontend. It
+also downloads `qwen3-embedding:4b` when needed.
 
-### Frontend Tests
+- App: http://localhost:5173
+- API docs: http://127.0.0.1:8003/docs
 
-```bash
-cd web
+Press `Ctrl+C` to stop the services started by the script. Local PostgreSQL data
+is persisted in `.docker/postgres_data`.
 
-# Run unit tests (excludes integration tests)
-pnpm test:run
-
-# Run tests with coverage
-pnpm test:coverage
-
-# Run all tests including integration (requires Supabase running)
-pnpm test:integration
-```
-
-- **Unit tests:** Use mocks, no external dependencies
-- **Integration tests:** Make real HTTP calls to Supabase Edge Functions
-
----
-
-## Scripts
-
-Scripts are available for both the FastAPI and the legacy Supabase modes.
-For the normal local workflow, use `bash scripts/start-fastapi.sh`.
-
-### Seed data
-
-The shared Portuguese fixture populates FastAPI with real embeddings generated by
-the Qwen model running in Ollama.
-
-Start FastAPI before seeding:
+If you only need the backend services in the background:
 
 ```bash
 docker compose up -d postgres ollama server
 docker exec notes-ollama ollama pull qwen3-embedding:4b
 ```
 
-Populate the local PostgreSQL/pgvector database:
+## Chat AI
+
+When `CHAT_PROVIDER` is not set, the backend uses Groq automatically when
+`GROQ_API_KEY` is available, with the `qwen/qwen3.8-27b` model. Use `CHAT_PROVIDER`
+and `GROQ_MODEL` to override it. Never expose the key in the frontend or commit it.
+
+If communication with the assistant fails, the interface keeps the submitted
+message and shows: “Não consegui me conectar com o assistente. Verifique a conexão
+e tente novamente.”
+
+## Seed notes
+
+With the local services running, populate the Portuguese fixture (36 notes with
+real Qwen embeddings):
 
 ```bash
-
-# Insert 36 notes with the [seed:pt-br] prefix
 bash scripts/seed_notes_fastapi.sh --reset
+```
 
-# Equivalent Python form with extra options
-python3 scripts/seed_notes.py --backend fastapi --reset
+Remove only the fixture notes when you are done:
 
-# Remove only the fixture notes
+```bash
 bash scripts/seed_notes_fastapi.sh --cleanup
 ```
 
-The legacy Supabase seeder remains available after starting Supabase and its Edge
-Functions:
+The Python form supports the same operations plus a custom prefix:
 
 ```bash
-# The script calls scripts/seed_notes.py --backend supabase
-bash scripts/seed_notes_br.sh --reset
-bash scripts/seed_notes_br.sh --cleanup
-```
-
-The legacy English Supabase fixture is also available:
-
-```bash
-bash scripts/seed_notes_en.sh
-```
-
-The prefix keeps test data separate from manual notes. It can be changed without
-making cleanup unsafe:
-
-```bash
+python3 scripts/seed_notes.py --backend fastapi --reset
 python3 scripts/seed_notes.py --backend fastapi --prefix "[e2e:pt-br]" --reset
 python3 scripts/seed_notes.py --backend fastapi --prefix "[e2e:pt-br]" --cleanup
 ```
 
-If insertion fails, the seeder automatically removes the IDs created in that run.
-FastAPI also exposes `DELETE /notes/{id}` so tests can clean up individual notes
-without using the destructive endpoint that removes everything.
+Useful semantic-search queries include `banco central`, `split payment`,
+`random key` and `barcode`.
 
-### Semantic search E2E
+## Tests
 
-With PostgreSQL, Ollama/Qwen and FastAPI available at `127.0.0.1:8003`, run:
+Unit tests and the production build:
+
+```bash
+cd web
+pnpm test:run
+pnpm build
+```
+
+With the FastAPI environment running, execute the Playwright tests in another
+terminal:
 
 ```bash
 cd web
 pnpm test:e2e
 ```
 
-Playwright starts Vite when needed, seeds the fixture, tests Portuguese queries
-about Pix, bank slips and carbonara, validates the first ranked result and cleans
-up the notes afterward. To use another FastAPI API:
+The E2E suite covers Chat AI failure handling and semantic search cleanup.
 
-```bash
-E2E_API_URL=http://127.0.0.1:8003 pnpm test:e2e
+## Project structure
+
+```text
+server/          FastAPI API, PostgreSQL access and chat provider configuration
+web/             React + TypeScript frontend
+postgres/init/   PostgreSQL + pgvector schema
+scripts/         Local seeders, startup helpers and cleanup scripts
+supabase/        Preserved Supabase backend; see README-supabase.md
 ```
 
-The test requires the local embedding model:
+## Tech stack
 
-```bash
-docker exec notes-ollama ollama pull qwen3-embedding:4b
-```
-
-### Delete all notes
-
-```bash
-bash scripts/delete_all_notes.sh
-```
-
-### Run tests (Supabase Edge Functions)
-
-Requires [Deno](https://deno.land/) installed.
-
-```bash
-cd supabase
-
-# Run tests once
-deno task test:run
-
-# Run tests with coverage
-deno task test:coverage
-
-# Run integration tests (requires Supabase and Ollama running)
-deno task test:integration
-```
-
-### Python Scripts (Embedding & Chat)
-
-Test scripts for embeddings and chat with Langchain. Located in `server/scripts/`.
-
-```bash
-# Chat with Qwen2.5 using Langchain
-server/venv/bin/python3 server/scripts/qwen25-langchain-chat.py
-
-# Generate embeddings with Ollama (qwen3-embedding)
-server/venv/bin/python3 server/scripts/qwen3-langchain-embedding.py
-
-# Generate embeddings with Gemini
-server/venv/bin/python3 server/scripts/gemini-api-embedding.py
-
-# Generate embeddings with MiniMax
-server/venv/bin/python3 server/scripts/minimax-embedding.py
-```
-
----
-
-## Vector Data Types (pgvector)
-
-pgvector supports different types for storing embeddings:
-
-| Type | Dimension Limit | Recommended Use |
-|------|----------------|----------------|
-| `vector` | up to 2,000 | Small embeddings (OpenAI, nomic-embed-text) |
-| `halfvec` | up to 4,000 | Large embeddings (qwen3-embedding:4b with 2560 dim) |
-| `bit` | up to 64,000 | Binary search (high speed) |
-
-### Memory and Performance Differences
-
-- **vector**: Full precision (32-bit float), more memory
-- **halfvec**: Half precision (16-bit float), ~50% less memory
-- **bit**: 1 bit per dimension, smallest, but loses precision
-
-### Changing the Column Type
-
-```sql
--- To use 2560-dimensional embeddings (e.g., qwen3-embedding)
-ALTER TABLE notes ALTER COLUMN embedding TYPE halfvec(2560);
-CREATE INDEX notes_embedding_idx ON notes USING hnsw (embedding halfvec_cosine_ops);
-```
-
----
-
-## Vector Search
-
-Notes are searched by **semantic similarity** — you don't need to type the exact word. The model understands context and returns only notes related to the searched topic.
-
-For example, searching for fintech terms returns only financial notes, without mixing in movie or recipe notes that also exist in the database.
-
-### Search terms to test (Portuguese seed)
-
-**Payments and transfers:**
-- `banco central` → notes about Pix, SPI, regulation
-- `split payment` → notes about Pix, TED, transfers
-- `random key` → notes about Pix key registration
-- `barcode` → notes about bank slips
-
-> **Note:** The `server/` folder implements the local FastAPI mode. The `supabase/`
-> folder continues to implement the alternative Edge Functions and Realtime mode.
-
----
-
-## Structure
-
-```
-postgres/init/
-  001_schema.sql # Local PostgreSQL + pgvector schema
-server/
-  main.py       # FastAPI API for local mode
-  notes_service.py # CRUD, vector search and Ollama embeddings
-supabase/
-  migrations/   # Equivalent schema for Supabase mode
-  functions/    # Preserved Edge Functions
-web/
-  src/          # React + TypeScript frontend
-scripts/        # Legacy scripts using Supabase mode
-```
-
----
-
-## Tech Stack
-
-- **Local backend:** FastAPI + PostgreSQL/pgvector
-- **Alternative backend:** Supabase (PostgreSQL + Edge Functions + Realtime)
-- **Embeddings:** Ollama (`qwen3-embedding:4b`, 2560 dimensions)
-- **Frontend:** React + TypeScript + Vite
-- **UI:** Tailwind CSS + shadcn/ui
-- **Icons:** Lucide React
-
----
-
-## 👨‍💻 Contributors
-
-|Autor|
-|--|
-|[<img src="https://github.com/hallancosta.png" width="115"><br><div align="center"><sub>@HallanCosta</sub></div>](https://github.com/hallancosta)|
-
-⭐ If this project helped you, please consider starring the repo!
+FastAPI · PostgreSQL/pgvector · Ollama · React · TypeScript · Vite · Tailwind CSS
